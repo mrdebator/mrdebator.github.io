@@ -1,2 +1,1 @@
-# mrdebator.github.io
-Personal Website
+# personal-website
