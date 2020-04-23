@@ -8,6 +8,11 @@ p {
   margin-top: 15px;
 }
 
+.codeText {
+  background-color: #DCDCDC;
+  font-family: 'Source Code Pro', monospace;
+}
+
 .intro {
   text-align: center;
   font-size: 20px;
@@ -15,8 +20,13 @@ p {
 }
 
 .intro a {
-  color: #f33;
+  color: #228B22;
 }
+.intro a:hover {
+  text-decoration: none;
+  border-bottom: .1em solid #228B22
+}
+
 
 footer a {
   -webkit-transition: color 0.5s;
@@ -84,13 +94,42 @@ footer a:hover {
   margin: 30px auto;
   padding: 30px;
   overflow: hidden;
-  border: 5px solid #6d6d6d;
-  -webkit-transition: border 0.5s;
-  transition: border 0.5s;
+  border: 5px solid #000;
+
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-transform: perspective(1px) translateZ(0);
+  transform: perspective(1px) translateZ(0);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+  -webkit-transition-duration: 0.3s;
+  transition-duration: 0.3s;
+  -webkit-transition-property: transform;
+  transition-property: transform;
+
+  /* -webkit-transition: border 0.5s;
+  transition: border 0.5s; */
 }
 
 .logo-circle:hover {
-  border: 5px solid #000;
+  border: 5px solid #ffffff;
+  -webkit-transform: scale(1.1);
+  transform: scale(1.1);
+}
+
+.hvr-grow {
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-transform: perspective(1px) translateZ(0);
+  transform: perspective(1px) translateZ(0);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+  -webkit-transition-duration: 0.3s;
+  transition-duration: 0.3s;
+  -webkit-transition-property: transform;
+  transition-property: transform;
+}
+.hvr-grow:hover, .hvr-grow:focus, .hvr-grow:active {
+  -webkit-transform: scale(1.1);
+  transform: scale(1.1);
 }
 
 .logo {
@@ -112,9 +151,13 @@ h5 {
 /* Home Section */
 .home h1 {
   font-size: 50px;
-  font-weight: 600;
   margin-top: 0;
+  font-weight: 300;
   text-shadow: 2px 4px 3px rgba(0,0,0,0.3);
+}
+
+.green {
+  color: #00ff00;
 }
 
 .home h2 {
@@ -128,7 +171,7 @@ h5 {
 }
 
 .home {
-  background-image: url('img/bg5.jpg');
+  background-image: url('images/computers_bg1.jpg');
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-position: center;
@@ -164,8 +207,13 @@ h5 {
   animation-duration: 1s;
 }
 
-.home .typed {
+.home {
   color: #f33;
+}
+
+.typed {
+  color: #00ff00;
+  background-color: #000000;
 }
 
 .buttons {
@@ -173,9 +221,9 @@ h5 {
 }
 
 .top-button {
-  border: #f33 solid 2px;
-  background-color: #f33;
-  color: #fff;
+  border: #32CD32 solid 2px;
+  background-color: #32CD32;
+  color: #000;
   text-align: center;
   text-decoration: none;
   padding: 10px 20px;
@@ -185,7 +233,7 @@ h5 {
 .top-button:hover {
   background-color: transparent;
   text-decoration: none;
-  color: #fff;
+  color: #ffffff;
 }
 
 .heading-icon {
