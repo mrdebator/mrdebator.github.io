@@ -1,6 +1,6 @@
 $(function(){
 	$(".typed").typed({
-		strings: ["Hacker", "Sophomore", "Cybersecurity Major"],
+		strings: ["Hacker", "Junior", "Cybersecurity Major"],
 		typeSpeed: 50,
 		startDelay: 1000,
 		backDelay: 2000,
