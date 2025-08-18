@@ -2,7 +2,6 @@ import SectionHeading from "@/components/section-heading"
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Award, Gavel, GraduationCap, Trophy, Users, Star, Mic } from "lucide-react"
 import NextImage from "next/image"
-import Link from "next/link"
 
 export const metadata = {
     title: "Awards & Involvements",
@@ -155,7 +154,7 @@ export default function InvolvementsPage() {
                                         }
                                         if (category.name === "Research & Speaking Engagements") {
                                             return (
-                                                <Link key={item.title} href={item.link || "#"} target="_blank" rel="noopener noreferrer">
+                                                <a key={item.title} href={item.link || "#"} target="_blank" rel="noopener noreferrer">
                                                     <Card className="bg-card/50 backdrop-blur-sm overflow-hidden h-full group transition-all hover:shadow-xl hover:-translate-y-1">
                                                         <div className="relative aspect-video overflow-hidden">
                                                             <NextImage src={item.imageUrl!} alt={`Thumbnail for ${item.title}`} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -165,14 +164,14 @@ export default function InvolvementsPage() {
                                                             <p className="text-lg text-foreground">{item.organization}</p>
                                                         </CardHeader>
                                                     </Card>
-                                                </Link>
+                                                </a>
                                             );
                                         }
                                         if (category.name === "Competitive & Academic Honors") {
                                             if (!item.icon) return null;
                                             const Icon = item.icon;
                                             return (
-                                                <Link key={item.title} href={item.link || "#"} target="_blank" rel="noopener noreferrer">
+                                                <a key={item.title} href={item.link || "#"} target="_blank" rel="noopener noreferrer">
                                                     <Card className="bg-card/50 backdrop-blur-sm h-full group transition-all hover:shadow-xl hover:-translate-y-1">
                                                         <CardHeader className="flex flex-row items-center gap-4">
                                                             <Icon className="h-8 w-8 text-amber-400 flex-shrink-0" />
@@ -182,7 +181,7 @@ export default function InvolvementsPage() {
                                                             </div>
                                                         </CardHeader>
                                                     </Card>
-                                                </Link>
+                                                </a>
                                             );
                                         }
                                         return null;
