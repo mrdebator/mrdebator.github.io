@@ -26,7 +26,14 @@ export default function Header() {
         { name: "Experience", href: "/experience", icon: Briefcase },
     ]
 
-    const isActive = (path: string) => pathname === path
+    const isActive = (path: string) => {
+        // Handle the homepage specifically
+        if (path === "/") {
+            return pathname === "/";
+        }
+        // For other pages, check if the pathname starts with the link's href
+        return pathname.startsWith(path)
+    }
 
     return (
         <>
