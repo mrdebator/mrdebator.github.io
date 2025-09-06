@@ -13,10 +13,10 @@ const mediaData = [
     // Category: Invited Talks & Features
     {
         category: "Invited Talks & Features",
-        title: "Coming Soon...",
+        title: "42 Breaches: A Red Teamer's Guide",
         platform: "HackTheBox - CubeCast Podcast",
         description: "A deep dive into my career path, discussing offensive security, red teaming, and advice for aspiring professionals.",
-        link: "https://discord.gg/hackthebox?event=1384989386675851364", // Add link to podcast
+        link: "https://www.linkedin.com/posts/anshchandnani_hackthebox-cybersecurity-infosec-activity-7365095489383387137-whiI?utm_source=share&utm_medium=member_desktop&rcm=ACoAACPL5p4BxRYQ_MPXT2Nrj13rZYWZkkr-pqo", // Add link to podcast
         imageUrl: "/media/cubecast.jpeg",
     },
     {
@@ -34,6 +34,22 @@ const mediaData = [
         description: "My interview on my big-tech co-op experiences was featured by the university on digital billboards across campus.",
         link: "https://technical.ly/professional-development/whats-it-like-intern-big-tech-company-google-amazon-meta/",
         imageUrl: "/media/technically_billboard.jpg",
+    },
+    {
+        category: "Invited Talks & Features",
+        title: "CTFs to Google: Real Lessons from a Cybersecurity Pro",
+        platform: "Defense Logic Blog, by Kartavya Ojha",
+        description: "A featured post from a mentee in the cybersecurity field, reflecting on my journey and lessons learned.",
+        link: "https://defencelogic.wordpress.com/2025/08/28/the-journey-from-ctfs-to-google-real-lessons-from-a-cybersecurity-pro/",
+        imageUrl: "/media/forbes.jpg",
+    },
+    {
+        category: "Invited Talks & Features",
+        title: "Learning From the Best of the Best",
+        platform: "Manuel Meinen, Cybersecurity Analyst at Die Mobiliar",
+        description: "A fellow cybersecurity analyst's reflection on our inspiring conversation, detailing his key takeaways on the future of AI in cybersecurity.",
+        link: "https://www.linkedin.com/posts/manuel-meinen_my-blog-post-of-week-3-is-out-many-thanks-activity-7368366749219442689-pEMr?utm_source=share&utm_medium=member_desktop&rcm=ACoAACPL5p4BxRYQ_MPXT2Nrj13rZYWZkkr-pqo",
+        imageUrl: "/media/manuels-blog.jpeg",
     },
     {
         category: "Invited Talks & Features",
