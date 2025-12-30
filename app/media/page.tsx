@@ -16,7 +16,7 @@ const mediaData = [
         title: "42 Breaches: A Red Teamer's Guide",
         platform: "HackTheBox - CubeCast Podcast",
         description: "A deep dive into my career path, discussing offensive security, red teaming, and advice for aspiring professionals.",
-        link: "https://www.linkedin.com/posts/anshchandnani_hackthebox-cybersecurity-infosec-activity-7365095489383387137-whiI?utm_source=share&utm_medium=member_desktop&rcm=ACoAACPL5p4BxRYQ_MPXT2Nrj13rZYWZkkr-pqo", // Add link to podcast
+        link: "https://open.spotify.com/episode/7EUIUtQiDj61YLMswY4r7P",
         imageUrl: "/media/cubecast.jpeg",
     },
     {
