@@ -20,7 +20,6 @@ const involvementsData = [
             "Crafted unique challenges spanning a wide range of modern cybersecurity domains including Web Exploitation, Reversing, Forensics, and AI/ML.",
             "Hosted novel on-site engagement activities, including physical lock picking challenges and interactive QR code scavenger hunts.",
         ],
-        icon: Gavel,
         imageUrl: "/involvements/bsides.jpg",
     },
     {
@@ -33,7 +32,6 @@ const involvementsData = [
             "Analyzed software prototypes for technical complexity, soundness, and scalability alongside senior practitioners from Google, Microsoft, and Meta.",
             "Provided qualitative feedback and scoring on the implementation quality and original technical contributions of emerging software products.",
         ],
-        icon: Gavel,
         imageUrl: "/involvements/foundry.jpg",
     },
     {
@@ -47,7 +45,6 @@ const involvementsData = [
             "Constructed a cybersecurity lab using Proxmox, Kali Linux, and vulnerable machines on recycled servers to provide a safe environment for learning and experimentation.",
             "Managed executive operations, including budgeting and scheduling, while leading the club's competitive team to a regional championship victory.",
         ],
-        icon: Gavel,
         imageUrl: "/involvements/cptc.jpg",
     },
     // --- Category: Research & Speaking Engagements ---
