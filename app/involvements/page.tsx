@@ -25,6 +25,19 @@ const involvementsData = [
     },
     {
         category: "Community Leadership & Judging",
+        title: "Judge, Startup in a Weekend",
+        organization: "The Foundry",
+        date: "November 2025",
+        description: [
+            "Evaluated technical demonstrations and implementations for 40+ teams during a high-stakes, 36-hour buildathon with over 120 participants.",
+            "Analyzed software prototypes for technical complexity, soundness, and scalability alongside senior practitioners from Google, Microsoft, and Meta.",
+            "Provided qualitative feedback and scoring on the implementation quality and original technical contributions of emerging software products.",
+        ],
+        icon: Gavel,
+        imageUrl: "/involvements/foundry.jpg",
+    },
+    {
+        category: "Community Leadership & Judging",
         title: "President, Drexel Cyberdragons",
         organization: "Drexel University Cybersecurity Club",
         date: "2022 - 2023",
@@ -34,7 +47,7 @@ const involvementsData = [
             "Constructed a cybersecurity lab using Proxmox, Kali Linux, and vulnerable machines on recycled servers to provide a safe environment for learning and experimentation.",
             "Managed executive operations, including budgeting and scheduling, while leading the club's competitive team to a regional championship victory.",
         ],
-        icon: Users,
+        icon: Gavel,
         imageUrl: "/involvements/cptc.jpg",
     },
     // --- Category: Research & Speaking Engagements ---
