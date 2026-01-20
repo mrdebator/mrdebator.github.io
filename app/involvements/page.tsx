@@ -14,10 +14,10 @@ const involvementsData = [
         category: "Community Leadership & Judging",
         title: "Co-organizer & Judge, BSides SF CTF",
         organization: "BSides San Francisco",
-        date: "2024 & 2025",
+        date: "2024 - Present",
         description: [
             "Co-organized and judged a large-scale Capture-the-Flag (CTF) competition for 1,350+ participants competing in 832 teams.",
-            "Crafted 57 unique challenges spanning a wide range of modern cybersecurity domains including Web Exploitation, Reversing, Forensics, and AI/ML.",
+            "Crafted unique challenges spanning a wide range of modern cybersecurity domains including Web Exploitation, Reversing, Forensics, and AI/ML.",
             "Hosted novel on-site engagement activities, including physical lock picking challenges and interactive QR code scavenger hunts.",
         ],
         icon: Gavel,
@@ -27,7 +27,7 @@ const involvementsData = [
         category: "Community Leadership & Judging",
         title: "Judge, Startup in a Weekend",
         organization: "The Foundry",
-        date: "November 2025",
+        date: "Nov 2025",
         description: [
             "Evaluated technical demonstrations and implementations for 40+ teams during a high-stakes, 36-hour buildathon with over 120 participants.",
             "Analyzed software prototypes for technical complexity, soundness, and scalability alongside senior practitioners from Google, Microsoft, and Meta.",
