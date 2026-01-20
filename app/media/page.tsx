@@ -15,7 +15,7 @@ const mediaData = [
         category: "Invited Talks & Features",
         title: "42 Breaches: A Red Teamer's Guide",
         platform: "HackTheBox - CubeCast Podcast",
-        description: "A deep dive into my career path, discussing offensive security, red teaming, and advice for aspiring professionals.",
+        description: "A deep dive into my career path, from coding as a kid to breaking systems for a living, I discuss my curiosities, learning through CTFs, dealing with imposter syndrome, and my views on AI in cybersecurity. ",
         link: "https://open.spotify.com/episode/7EUIUtQiDj61YLMswY4r7P",
         imageUrl: "/media/cubecast.jpeg",
     },
