@@ -24,6 +24,18 @@ const involvementsData = [
     },
     {
         category: "Community Leadership & Judging",
+        title: "Review Board Member",
+        organization: "Undergraduate Research & Enrichment Programs, Pennoni Honors College, Drexel University",
+        date: "Jan 2026 - Mar 2026",
+        description: [
+            "Selected as an Alumni Reviewer for Drexel University's Undergraduate Research & Enrichment Programs (UREP), dedicating time to evaluate and mentor the next generation of STEM innovators applying to the Students Tackling Advanced Research (STAR) Scholars Program.",
+            "Critically assessed technical research proposals from College of Computing & Informatics (CCI) candidates, analyzing students' grasp of advanced research topics ranging from LLM optimization and zero-shot models to physiological data science applications.",
+            "Conducted holistic evaluations of applicants' academic rigor, collaborative skills, and research motivations, identifying top-tier undergraduate talent demonstrating exceptional technical maturity and first-principles thinking.",
+        ],
+        imageUrl: "/involvements/star.jpeg",
+    },
+    {
+        category: "Community Leadership & Judging",
         title: "Judge, Startup in a Weekend",
         organization: "The Foundry",
         date: "Nov 2025",
