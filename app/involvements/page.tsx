@@ -16,8 +16,8 @@ const involvementsData = [
         organization: "BSides San Francisco",
         date: "2024 - Present",
         description: [
-            "Co-organized and judged a large-scale Capture-the-Flag (CTF) competition for 1,350+ participants competing in 832 teams.",
-            "Crafted unique challenges spanning a wide range of modern cybersecurity domains including Web Exploitation, Reversing, Forensics, and AI/ML.",
+            "Co-organized and judged a large-scale Capture-the-Flag (CTF) competition for 3,200+ participants from around the world.",
+            "Crafted unique challenges spanning a wide range of modern cybersecurity domains including Forensics, Reverse Engineering, Pwn, AI/ML, and Cryptography.",
             "Hosted novel on-site engagement activities, including physical lock picking challenges and interactive QR code scavenger hunts.",
         ],
         imageUrl: "/involvements/bsides.jpg",
