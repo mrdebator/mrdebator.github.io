@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 const experienceData = [
     {
         companyName: "Google",
-        location: "Sunnyvale, CA",
+        location: "Sunnyvale, CA | Munich, DE | Zurich, CH",
         logo: "/logos/google.svg",
         companyUrl: "https://about.google/",
         positions: [
@@ -17,10 +17,11 @@ const experienceData = [
                 title: "Security Engineer, Offensive Security",
                 period: "July 2023 - Present",
                 description: [
-                    "Strengthen the security posture of core enterprise products by identifying vulnerabilities and driving remediation efforts through the design and execution of novel red team exercises.",
-                    "Increase red team operator effectiveness by architecting custom tooling for the reconnaissance and post-exploitation phases of penetration tests.",
-                    "Drive cross-functional security initiatives, including design reviews, vulnerability taxonomy development, and strategic remediation planning.",
-                    "Mentor and guide an intern in validating Windows Tactics, Techniques, and Procedures (TTPs), leading to improved Active Directory hygiene.",
+                    "Strengthen the security posture of Google's Production, Corporate, and Cloud environments by identifying vulnerabilities and driving remediation through the design and execution of novel red team exercises.",
+                    "Research and engineer Tactics, Techniques, and Procedures (TTPs) for hardware, firmware, and operating systems exploitation - including Direct Memory Access (DMA) attacks, Local Privilege Escalation (LPE), and Endpoint Detection & Response (EDR) evasion.",
+                    "Architect, develop, and maintain custom red team exercise infrastructure, Command-and-Control (C2) frameworks, and Agentic Red Teaming capabilities for manual and autonomous assurance engineering.",
+                    "Drive organization-level security improvements by authoring control effectiveness reports, strategic remediation efforts, system design reviews, and collaborating on cross-functional security initiatives to validate fleet-wide and open-source patches.",
+                    "Mentored and guided an intern in validating Windows lateral movement and privilege escalation vectors, leading to improved Active Directory hygiene.",
                 ],
             },
             {
