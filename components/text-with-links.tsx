@@ -20,12 +20,17 @@ export default function TextWithLinks({ text }: { text: string }) {
             parts.push(text.substring(lastIndex, matchIndex));
         }
 
-        // Add the Link component for the matched link
-        parts.push(
-            <Link key={matchIndex} href={url} className="text-[#00ff00] hover:underline">
-                {linkText}
-            </Link>
-        );
+        // Add the Link component for the matched link if URL protocol is safe
+        const isSafeUrl = url.startsWith('/') || url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:');
+        if (isSafeUrl) {
+            parts.push(
+                <Link key={matchIndex} href={url} className="text-[#00ff00] hover:underline">
+                    {linkText}
+                </Link>
+            );
+        } else {
+            parts.push(linkText);
+        }
 
         lastIndex = matchIndex + fullMatch.length;
     }
