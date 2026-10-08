@@ -4,9 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
     SiLinkedin,
-    SiGithub,
-    SiGooglescholar,
-    SiWordpress
+    SiGithub
 } from "react-icons/si";
 
 export default function Footer() {
