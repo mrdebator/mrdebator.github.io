@@ -1,7 +1,7 @@
 import SectionHeading from "@/components/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Code, ExternalLink } from "lucide-react";
+import { Code, ExternalLink, Play } from "lucide-react";
 import NextImage from "next/image";
 import Link from "next/link";
 import TextWithLinks from "@/components/text-with-links";
@@ -11,7 +11,39 @@ export const metadata = {
     description: "A selection of my most impactful projects, from research prototypes to community infrastructure.",
 };
 
-const projectsData = [
+interface ProjectItem {
+    name: string;
+    tagline: string;
+    problem: string;
+    myRole: string;
+    keyFeatures: string[];
+    techStack: string[];
+    impact: string;
+    links: {
+        github?: string;
+        demo?: string;
+    };
+    visual: string;
+}
+
+const projectsData: ProjectItem[] = [
+    {
+        name: "Linux Maple Tree Visualizer",
+        tagline: "An interactive systems visualizer for the Linux 6.1+ kernel Maple Tree data structure and virtual memory subsystem.",
+        problem: "Linux 6.1 replaced the traditional red-black tree with the Maple Tree for managing virtual memory areas (VMAs). While it improves lockless read performance, understanding how range-based B-trees balance, split, and update in memory can be challenging without a visual way to step through each operation.",
+        myRole: "I designed and built the visualizer; implementing the range-based B-tree logic in TypeScript, building the interactive D3.js canvas, and creating step-by-step walkthroughs to make kernel memory management concepts easier to explore.",
+        keyFeatures: [
+            "Simulates Linux 6.1+ kernel VMA management (lib/maple_tree.c, mm/mmap.c) with B* sibling balancing, cascading RCU splits, and hole-punching.",
+            "Features 12 interactive scenarios demonstrating demand paging, ASLR 48-bit address sparsity, W^X JIT lifecycles, and CVE-2017-1000364 Stack Clash protection.",
+            "Hardware-accelerated D3.js SVG canvas with continuous auto-centering, dynamic 48-bit node sizing, time-travel scrubbing, and real-time kernel telemetry.",
+        ],
+        techStack: ["TypeScript", "D3.js", "React", "Next.js", "Tailwind CSS", "Linux Kernel MM", "B-Trees"],
+        impact: "A visual, interactive learning tool to help developers, students, and systems enthusiasts better understand how the modern Linux kernel organizes process memory, resolves page faults, and manages address spaces under the hood.",
+        links: {
+            demo: "/labs/maple-tree-visualizer",
+        },
+        visual: "/projects/maple-tree.svg",
+    },
     {
         name: "Claros",
         tagline: "A query-driven knowledge graph and OSINT automation engine.",
@@ -81,12 +113,19 @@ export default function ProjectsPage() {
                         <div key={project.name} className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 items-start">
                             {/* Left Column: Visual & Links */}
                             <div className="md:col-span-1">
-                                <div className="relative aspect-video rounded-lg overflow-hidden border border-border shadow-lg mb-4 bg-white">
+                                <div className={`relative aspect-video rounded-lg overflow-hidden border border-border shadow-lg mb-4 ${project.visual.endsWith('.svg') ? 'bg-slate-950' : 'bg-white'}`}>
                                     <NextImage src={project.visual} alt={`Visual for ${project.name}`} fill className="object-contain" />
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    {project.links.github && (
+                                <div className="flex flex-col gap-2.5">
+                                    {project.links.demo && (
                                         <Button asChild className="w-full">
+                                            <Link href={project.links.demo}>
+                                                <Play className="h-4 w-4 mr-2 fill-current" /> Launch Interactive Lab
+                                            </Link>
+                                        </Button>
+                                    )}
+                                    {project.links.github && (
+                                        <Button asChild variant={project.links.demo ? "outline" : "default"} className="w-full">
                                             <Link href={project.links.github} target="_blank" rel="noopener noreferrer">
                                                 <ExternalLink className="h-4 w-4 mr-2" /> View on GitHub
                                             </Link>
