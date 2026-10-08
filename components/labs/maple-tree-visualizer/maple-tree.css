@@ -1,0 +1,189 @@
+/* Maple Tree Visualizer Theme - Styled for anshc.me Slate & Emerald Aesthetic */
+.maple-tree-viz {
+    --bg-main: #020617; /* slate-950 */
+    --bg-panel: rgba(15, 23, 42, 0.85); /* slate-900 / 85 */
+    --bg-header: rgba(15, 23, 42, 0.9);
+    --bg-subtle: #1e293b; /* slate-800 */
+    --border-color: #334155; /* slate-700 */
+    --border-subtle: #1e293b; /* slate-800 */
+    --text-main: #f8fafc; /* slate-50 */
+    --text-muted: #94a3b8; /* slate-400 */
+    
+    --accent-blue: #38bdf8; /* sky-400 */
+    --accent-green: #10b981; /* emerald-500 */
+    --accent-orange: #f59e0b; /* amber-500 */
+    --accent-red: #f43f5e; /* rose-500 */
+    --accent-purple: #a855f7; /* purple-500 */
+    --accent-cyan: #06b6d4; /* cyan-500 */
+    
+    --node-bg: #0f172a; /* slate-900 */
+    --node-border: #334155; /* slate-700 */
+    --node-interior-header: #1e293b; /* slate-800 */
+    --node-leaf-header: #064e3b; /* deep emerald-900 */
+    --node-overflow-header: #881337; /* deep rose-900 */
+    
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* Badges */
+.maple-tree-viz .badge-idle { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+.maple-tree-viz .badge-visit { background: #0284c7; color: #ffffff; }
+.maple-tree-viz .badge-compare { background: #d97706; color: #020617; font-weight: 700; }
+.maple-tree-viz .badge-descend { background: #7c3aed; color: #ffffff; }
+.maple-tree-viz .badge-insert { background: #059669; color: #ffffff; }
+.maple-tree-viz .badge-found { background: #10b981; color: #020617; font-weight: 800; }
+.maple-tree-viz .badge-not_found { background: #e11d48; color: #ffffff; }
+.maple-tree-viz .badge-overflow { background: #f43f5e; color: #ffffff; animation: pulse 1s infinite alternate; }
+.maple-tree-viz .badge-split_redistribute { background: #a855f7; color: #020617; font-weight: 700; }
+.maple-tree-viz .badge-split { background: #ea580c; color: #ffffff; }
+.maple-tree-viz .badge-delete { background: #e11d48; color: #ffffff; }
+.maple-tree-viz .badge-underflow { background: #f43f5e; color: #ffffff; }
+.maple-tree-viz .badge-collapse { background: #06b6d4; color: #020617; font-weight: 700; }
+.maple-tree-viz .badge-conflict { background: #e11d48; color: #ffffff; animation: pulse 0.8s infinite alternate; }
+
+@keyframes pulse {
+    from { opacity: 0.7; }
+    to { opacity: 1; transform: scale(1.05); }
+}
+
+/* SVG D3 Elements */
+.maple-tree-viz .link {
+    fill: none;
+    stroke: #334155;
+    stroke-width: 2px;
+    transition: stroke 0.3s;
+}
+
+.maple-tree-viz .link.link-active {
+    stroke: #38bdf8;
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.4));
+}
+
+.maple-tree-viz .node {
+    cursor: pointer;
+}
+
+.maple-tree-viz .node .main-rect {
+    fill: var(--node-bg);
+    stroke: var(--node-border);
+    stroke-width: 1.5px;
+    transition: all 0.3s;
+}
+
+.maple-tree-viz .node-interior .header-bg {
+    fill: var(--node-interior-header);
+}
+
+.maple-tree-viz .node-leaf .header-bg {
+    fill: var(--node-leaf-header);
+}
+
+.maple-tree-viz .node-overflow .header-bg {
+    fill: var(--node-overflow-header);
+}
+
+.maple-tree-viz .node text {
+    font-family: var(--font-mono);
+    user-select: none;
+}
+
+/* Operational Highlights Matching Site Glows */
+.maple-tree-viz .node.highlight-visit .main-rect {
+    stroke: #38bdf8;
+    stroke-width: 2.5px;
+    filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.5));
+}
+
+.maple-tree-viz .node.highlight-compare .main-rect {
+    stroke: #f59e0b;
+    stroke-width: 2.5px;
+    filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.5));
+}
+
+.maple-tree-viz .node.highlight-found .main-rect {
+    stroke: #10b981;
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.7));
+}
+
+.maple-tree-viz .node.highlight-overflow .main-rect {
+    stroke: #f43f5e;
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 14px rgba(244, 63, 94, 0.7));
+}
+
+.maple-tree-viz .node.highlight-split_redistribute .main-rect {
+    stroke: #a855f7;
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.6));
+}
+
+.maple-tree-viz .node.highlight-split .main-rect {
+    stroke: #f97316;
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 12px rgba(249, 115, 22, 0.6));
+}
+
+.maple-tree-viz .node.highlight-collapse .main-rect {
+    stroke: #06b6d4;
+    stroke-width: 2.5px;
+    filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.6));
+}
+
+.maple-tree-viz .node.highlight-conflict .main-rect {
+    stroke: #f43f5e;
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 16px rgba(244, 63, 94, 0.85));
+}
+
+/* Slot Cell Highlight */
+.maple-tree-viz .slot-highlight-rect {
+    fill: rgba(245, 158, 11, 0.2);
+    stroke: #f59e0b;
+    stroke-width: 2px;
+}
+
+.maple-tree-viz .slot-conflict-rect {
+    fill: rgba(244, 63, 94, 0.3);
+    stroke: #f43f5e;
+    stroke-width: 2.5px;
+}
+
+/* Slot Typography and Badges */
+.maple-tree-viz .slot-label {
+    fill: var(--text-muted);
+    font-family: var(--font-mono);
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.maple-tree-viz .pivot-label {
+    fill: var(--text-main);
+    font-family: var(--font-mono);
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.maple-tree-viz .vma-badge {
+    fill: rgba(5, 150, 105, 0.85);
+    stroke: rgba(16, 185, 129, 0.4);
+    stroke-width: 1px;
+}
+
+.maple-tree-viz .vma-badge-label {
+    fill: #ffffff;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    pointer-events: none;
+}
+
+.maple-tree-viz .vma-range-text {
+    fill: #94a3b8;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    pointer-events: none;
+}
+

@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
     SiLinkedin,
     SiGithub,
@@ -7,6 +10,11 @@ import {
 } from "react-icons/si";
 
 export default function Footer() {
+    const pathname = usePathname();
+    if (pathname?.startsWith("/labs")) {
+        return null;
+    }
+
     const currentYear = new Date().getFullYear();
 
     const socialLinks = [

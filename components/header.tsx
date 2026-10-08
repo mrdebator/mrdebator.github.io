@@ -27,12 +27,13 @@ export default function Header() {
     ]
 
     const isActive = (path: string) => {
+        if (!pathname) return false;
         // Handle the homepage specifically
         if (path === "/") {
             return pathname === "/";
         }
         // For other pages, check if the pathname starts with the link's href
-        return pathname.startsWith(path)
+        return pathname.startsWith(path);
     }
 
     return (
