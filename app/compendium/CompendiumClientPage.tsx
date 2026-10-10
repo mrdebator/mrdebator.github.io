@@ -53,7 +53,7 @@ export default function CompendiumClientPage({
                             }`}
                         >
                             <span>{domain.name}</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800/80 text-slate-300">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300">
                                 {count}
                             </span>
                         </button>
@@ -75,7 +75,7 @@ export default function CompendiumClientPage({
                             className="group relative rounded-xl border border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/70 hover:border-slate-700/80 transition-all p-6 shadow-sm hover:shadow-md backdrop-blur-sm"
                         >
                             {/* Domain badges */}
-                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <div className="relative z-10 flex flex-wrap items-center gap-2 mb-3">
                                 {post.domains.map((d) => (
                                     <button
                                         key={d.id}

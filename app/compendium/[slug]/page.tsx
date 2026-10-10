@@ -68,7 +68,8 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
     };
 
     return (
-        <article className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+        <main className="min-h-screen pt-6 md:pt-24 pb-16">
+            <article className="max-w-6xl mx-auto px-4">
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -164,5 +165,6 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                 </aside>
             </div>
         </article>
+    </main>
     );
 }

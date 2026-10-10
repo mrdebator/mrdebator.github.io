@@ -248,7 +248,7 @@ function transformCallouts(markdown: string): string {
             .join("\n")
             .trim();
 
-        return `<div class="callout callout-${calloutType}">
+        return `<div class="callout not-prose callout-${calloutType}">
 <div class="callout-header"><span class="callout-icon"></span><span class="callout-title">${calloutTitle}</span></div>
 <div class="callout-content">
 
@@ -323,7 +323,7 @@ async function highlightCodeBlocks(markdown: string): Promise<string> {
                 .replace(/>/g, "&gt;")}</code></pre>`;
         }
 
-        const wrapped = `<div class="code-block-wrapper my-6 rounded-lg border border-slate-800 bg-[#1e2227] overflow-hidden">
+        const wrapped = `<div class="code-block-wrapper not-prose my-6 rounded-lg border border-slate-800 bg-[#1e2227] overflow-hidden">
 <div class="code-block-header flex items-center justify-between px-4 py-1.5 bg-slate-900/90 border-b border-slate-800 text-xs font-mono text-slate-400">
 <span>${item.lang || "plaintext"}</span>
 </div>
