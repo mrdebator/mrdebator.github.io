@@ -1,9 +1,16 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import { marked } from "marked";
-import { codeToHtml } from "shiki";
-import katex from "katex";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import remarkRehype from "remark-rehype";
+import rehypeKatex from "rehype-katex";
+import rehypeShiki from "@shikijs/rehype";
+import rehypeStringify from "rehype-stringify";
+import { visit } from "unist-util-visit";
+import GithubSlugger from "github-slugger";
 import { COMPENDIUM_DOMAINS, DomainMeta, normalizeDomain } from "./domains";
 
 const COMPENDIUM_DIR = path.join(process.cwd(), "content", "compendium");
@@ -17,6 +24,7 @@ export interface CompendiumPostMeta {
     readingTimeMinutes: number;
     excerpt: string;
     content?: string;
+    aliases?: string[];
     draft: boolean;
     filename: string;
 }
@@ -123,6 +131,13 @@ export function getAllPostsMeta(): CompendiumPostMeta[] {
         // Derive slug from explicit frontmatter or filename
         const slug = data.slug || slugify(filename.replace(/\.md$/, ""));
 
+        // Parse aliases
+        const rawAliases: string[] = Array.isArray(data.aliases)
+            ? data.aliases
+            : typeof data.aliases === "string"
+              ? [data.aliases]
+              : [];
+
         // Parse domains
         const rawDomains: string[] = Array.isArray(data.domains)
             ? data.domains
@@ -145,7 +160,7 @@ export function getAllPostsMeta(): CompendiumPostMeta[] {
         let excerpt = "";
         const cleanContent = content
             .replace(/^#+.*$/gm, "")
-            .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, "$2 || $1")
+            .replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g, "$2 || $1")
             .replace(/!\[.*?\]\(.*?\)/g, "")
             .trim();
         const paragraphs = cleanContent.split(/\n\s*\n/).filter((p) => p.trim().length > 30);
@@ -165,6 +180,7 @@ export function getAllPostsMeta(): CompendiumPostMeta[] {
             readingTimeMinutes,
             excerpt,
             content: cleanContent,
+            aliases: rawAliases,
             draft: Boolean(data.draft),
             filename,
         });
@@ -181,12 +197,357 @@ export function getAllPostsMeta(): CompendiumPostMeta[] {
 }
 
 /**
- * Resolves Obsidian wikilinks:
- * - Active: [[Target]] -> [Target](/compendium/target-slug) if target post exists
- * - Anchors: [[Target#Section]] -> [Target](/compendium/target-slug#section)
- * - Private/Unpublished: [[Target]] -> Target (clean text, no dead links)
- * - Aliases: [[Target|Label]] -> [Label](/compendium/target-slug) or Label
- * - Plurals: [[Target]]s -> Targets
+ * Remark Plugin: Transforms Obsidian wikilinks into clean hyperlinks or plain text
+ * according to approved precedence rules:
+ * - Unpublished with anchor: [[Windows#Memory Integrity]] -> "Windows Memory Integrity"
+ * - Unpublished with anchor + alias: [[Windows#Memory Integrity|HVCI]] -> "Windows Memory Integrity (HVCI)"
+ * - Unpublished with alias (no anchor): [[Windows|Win11]] -> "Windows" (target preserved, alias dropped)
+ * - Unpublished without anchor/alias: [[Windows]] -> "Windows"
+ * - Published with anchor: [[Windows#Memory Integrity]] -> [Windows Memory Integrity](/compendium/windows#memory-integrity)
+ * - Published with anchor + alias: [[Windows#Memory Integrity|HVCI]] -> [Windows Memory Integrity (HVCI)](/compendium/windows#memory-integrity)
+ * - Published with alias (no anchor): [[Windows|Win11]] -> [Windows](/compendium/windows)
+ * - Published without anchor/alias: [[Windows]] -> [Windows](/compendium/windows)
+ * - Internal section jumps: [[#Section]] -> [Section](#section)
+ * - Frontmatter aliases: Target note aliases: [...] supported during lookup
+ */
+function remarkWikilinks(allPosts: CompendiumPostMeta[], onMention?: (slug: string) => void) {
+    return (tree: any) => {
+        visit(tree, "text", (node: any, index: any, parent: any) => {
+            if (!node.value || !node.value.includes("[[")) return;
+            const WIKILINK_REGEX = /\[\[([^\]|#]*)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]([a-zA-Z]*)/g;
+            const newNodes: any[] = [];
+            let lastIndex = 0;
+            let match;
+
+            while ((match = WIKILINK_REGEX.exec(node.value)) !== null) {
+                const matchStart = match.index;
+                const matchEnd = WIKILINK_REGEX.lastIndex;
+
+                if (matchStart > lastIndex) {
+                    newNodes.push({
+                        type: "text",
+                        value: node.value.slice(lastIndex, matchStart),
+                    });
+                }
+
+                const targetRaw = (match[1] || "").trim();
+                const anchorRaw = match[2] ? match[2].trim() : null;
+                const aliasRaw = match[3] ? match[3].trim() : null;
+                const suffix = match[4] || "";
+
+                // Internal section jump: [[#Section]]
+                if (!targetRaw && anchorRaw) {
+                    const text = `${aliasRaw || anchorRaw}${suffix}`;
+                    newNodes.push({
+                        type: "link",
+                        url: `#${slugify(anchorRaw)}`,
+                        children: [{ type: "text", value: text }],
+                    });
+                    lastIndex = matchEnd;
+                    continue;
+                }
+
+                // Target note lookup (by title, filename, slug, or frontmatter aliases)
+                const targetLower = targetRaw.toLowerCase();
+                const targetSlug = slugify(targetRaw);
+                const matchedPost = allPosts.find(
+                    (p) =>
+                        p.title.toLowerCase() === targetLower ||
+                        (p.filename && p.filename.replace(/\.md$/, "").toLowerCase() === targetLower) ||
+                        p.slug === targetSlug ||
+                        (p.aliases &&
+                            p.aliases.some(
+                                (a: string) =>
+                                    a.toLowerCase() === targetLower || slugify(a) === targetSlug
+                            ))
+                );
+
+                if (matchedPost) {
+                    if (onMention) {
+                        onMention(matchedPost.slug);
+                    }
+                    let displayText = "";
+                    let href = `/compendium/${matchedPost.slug}`;
+
+                    if (anchorRaw) {
+                        href += `#${slugify(anchorRaw)}`;
+                        if (aliasRaw) {
+                            displayText = `${targetRaw} ${anchorRaw} (${aliasRaw})${suffix}`;
+                        } else {
+                            displayText = `${targetRaw} ${anchorRaw}${suffix}`;
+                        }
+                    } else {
+                        // Target strictly preserved; alias dropped
+                        displayText = `${targetRaw}${suffix}`;
+                    }
+
+                    newNodes.push({
+                        type: "link",
+                        url: href,
+                        children: [{ type: "text", value: displayText }],
+                    });
+                } else {
+                    // Unpublished / private vault note: cleanly stripped plain text
+                    let displayText = "";
+                    if (anchorRaw) {
+                        if (aliasRaw) {
+                            displayText = `${targetRaw} ${anchorRaw} (${aliasRaw})${suffix}`;
+                        } else {
+                            displayText = `${targetRaw} ${anchorRaw}${suffix}`;
+                        }
+                    } else {
+                        // Target strictly preserved; alias dropped
+                        displayText = `${targetRaw}${suffix}`;
+                    }
+
+                    newNodes.push({
+                        type: "text",
+                        value: displayText,
+                    });
+                }
+
+                lastIndex = matchEnd;
+            }
+
+            if (lastIndex < node.value.length) {
+                newNodes.push({
+                    type: "text",
+                    value: node.value.slice(lastIndex),
+                });
+            }
+
+            if (newNodes.length > 0 && parent && typeof index === "number") {
+                parent.children.splice(index, 1, ...newNodes);
+                return index + newNodes.length;
+            }
+        });
+    };
+}
+
+/**
+ * Remark Plugin: Transforms Obsidian callouts (> [!NOTE], > [!WARNING], etc.) into styled containers
+ */
+function remarkCallouts() {
+    return (tree: any) => {
+        visit(tree, "blockquote", (node: any) => {
+            if (!node.children || node.children.length === 0) return;
+            const firstChild = node.children[0];
+            if (firstChild.type !== "paragraph" || !firstChild.children || firstChild.children.length === 0) return;
+            const firstText = firstChild.children[0];
+            if (firstText.type !== "text") return;
+
+            const match = firstText.value.match(
+                /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\s+([^\n]*))?(?:\n([\s\S]*))?$/i
+            );
+            if (!match) return;
+
+            const type = match[1].toLowerCase();
+            const title = (match[2] || match[1]).trim();
+            const remaining = match[3] || "";
+
+            if (remaining) {
+                firstText.value = remaining;
+            } else {
+                firstChild.children.shift();
+            }
+
+            node.data = node.data || {};
+            node.data.hName = "div";
+            node.data.hProperties = {
+                className: ["callout", "not-prose", `callout-${type}`],
+            };
+
+            const headerNode = {
+                type: "paragraph",
+                data: {
+                    hName: "div",
+                    hProperties: { className: ["callout-header"] },
+                },
+                children: [
+                    { type: "text", data: { hName: "span", hProperties: { className: ["callout-icon"] } }, value: "" },
+                    { type: "strong", data: { hName: "span", hProperties: { className: ["callout-title"] } }, children: [{ type: "text", value: title }] },
+                ],
+            };
+
+            node.children.unshift(headerNode);
+        });
+    };
+}
+
+/**
+ * Rehype Plugin: Shared GithubSlugger for heading IDs and Table of Contents extraction.
+ * Injects IDs directly onto <h2> and <h3> tags and collects TOC entries with 100% synchronicity.
+ */
+function rehypeHeadingSlugger(slugger: GithubSlugger, tocCollector: TocItem[]) {
+    return (tree: any) => {
+        visit(tree, "element", (node: any) => {
+            if (node.tagName === "h2" || node.tagName === "h3") {
+                const level = node.tagName === "h2" ? 2 : 3;
+                let headingText = "";
+                visit(node, "text", (tNode: any) => {
+                    headingText += tNode.value || "";
+                });
+                const cleanText = headingText.trim();
+                const id = slugger.slug(cleanText);
+                node.properties = node.properties || {};
+                node.properties.id = id;
+                tocCollector.push({ id, text: cleanText, level });
+            }
+        });
+    };
+}
+
+/**
+ * Rehype Plugin: Wraps display KaTeX equations in overflow-x-auto for mobile responsiveness
+ */
+function rehypeWrapKatex() {
+    return (tree: any) => {
+        visit(tree, "element", (node: any, index: any, parent: any) => {
+            if (
+                node.tagName === "span" &&
+                node.properties?.className &&
+                Array.isArray(node.properties.className) &&
+                node.properties.className.includes("katex-display")
+            ) {
+                const wrapper = {
+                    type: "element",
+                    tagName: "div",
+                    properties: {
+                        className: ["katex-wrapper", "overflow-x-auto", "my-4", "py-2"],
+                    },
+                    children: [node],
+                };
+                if (parent && typeof index === "number") {
+                    parent.children[index] = wrapper;
+                }
+            }
+        });
+    };
+}
+
+/**
+ * Rehype Plugin: Wraps Shiki code blocks in styled containers with language label and copy button
+ */
+function rehypeWrapCodeBlocks() {
+    return (tree: any) => {
+        visit(tree, "element", (node: any, index: any, parent: any) => {
+            if (node.tagName === "pre" && node.properties && "data-lang" in node.properties) {
+                const lang = String(node.properties["data-lang"] || "plaintext");
+                const wrapper = {
+                    type: "element",
+                    tagName: "div",
+                    properties: {
+                        className: [
+                            "code-block-wrapper",
+                            "not-prose",
+                            "my-6",
+                            "rounded-lg",
+                            "border",
+                            "border-slate-800",
+                            "bg-[#1e2227]",
+                            "overflow-hidden",
+                        ],
+                    },
+                    children: [
+                        {
+                            type: "element",
+                            tagName: "div",
+                            properties: {
+                                className: [
+                                    "code-block-header",
+                                    "flex",
+                                    "items-center",
+                                    "justify-between",
+                                    "px-4",
+                                    "py-1.5",
+                                    "bg-slate-900/90",
+                                    "border-b",
+                                    "border-slate-800",
+                                    "text-xs",
+                                    "font-mono",
+                                    "text-slate-400",
+                                ],
+                            },
+                            children: [
+                                {
+                                    type: "element",
+                                    tagName: "span",
+                                    properties: {},
+                                    children: [{ type: "text", value: lang }],
+                                },
+                                {
+                                    type: "element",
+                                    tagName: "button",
+                                    properties: {
+                                        type: "button",
+                                        className: [
+                                            "copy-code-btn",
+                                            "inline-flex",
+                                            "items-center",
+                                            "gap-1",
+                                            "text-slate-400",
+                                            "hover:text-slate-200",
+                                            "transition-colors",
+                                            "cursor-pointer",
+                                        ],
+                                        "aria-label": "Copy code to clipboard",
+                                    },
+                                    children: [
+                                        {
+                                            type: "element",
+                                            tagName: "span",
+                                            properties: { className: ["copy-text"] },
+                                            children: [{ type: "text", value: "Copy" }],
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            type: "element",
+                            tagName: "div",
+                            properties: {
+                                className: ["code-block-body", "text-sm", "font-mono", "overflow-x-auto", "p-4"],
+                            },
+                            children: [node],
+                        },
+                    ],
+                };
+                if (parent && typeof index === "number") {
+                    parent.children[index] = wrapper;
+                }
+            }
+        });
+    };
+}
+
+/**
+ * Extracts Table of Contents from markdown headings (H2 & H3) using GithubSlugger
+ */
+export function extractToc(markdown: string): TocItem[] {
+    const slugger = new GithubSlugger();
+    const toc: TocItem[] = [];
+    const lines = markdown.split("\n");
+
+    for (const line of lines) {
+        const match = line.match(/^(#{2,3})\s+(.+)$/);
+        if (match) {
+            const level = match[1].length as 2 | 3;
+            const rawText = match[2].trim();
+            const text = rawText
+                .replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g, "$1")
+                .replace(/`([^`]+)`/g, "$1")
+                .replace(/[*_]/g, "");
+            const id = slugger.slug(text);
+            toc.push({ id, text, level });
+        }
+    }
+
+    return toc;
+}
+
+/**
+ * Legacy string resolver maintained for external utility compatibility
  */
 export function resolveWikilinks(
     markdown: string,
@@ -200,165 +561,33 @@ export function resolveWikilinks(
         (match, targetRaw: string, anchorRaw?: string, labelRaw?: string, suffixRaw?: string) => {
             const target = targetRaw.trim();
             const anchor = anchorRaw ? anchorRaw.trim() : null;
-            const label = labelRaw ? labelRaw.trim() : target;
             const suffix = suffixRaw || "";
-            const displayText = `${label}${suffix}`;
 
-            // Check if target matches any published post (case-insensitive by title, filename, or slug)
             const targetLower = target.toLowerCase();
+            const targetSlug = slugify(target);
             const matchedPost = allPosts.find(
                 (p) =>
                     p.title.toLowerCase() === targetLower ||
                     p.filename.replace(/\.md$/, "").toLowerCase() === targetLower ||
-                    p.slug === slugify(target)
+                    p.slug === targetSlug ||
+                    (p.aliases &&
+                        p.aliases.some((a) => a.toLowerCase() === targetLower || slugify(a) === targetSlug))
             );
 
             if (matchedPost) {
-                if (onMention) {
-                    onMention(matchedPost.slug);
-                }
+                if (onMention) onMention(matchedPost.slug);
                 const anchorSlug = anchor ? `#${slugify(anchor)}` : "";
-                return `[${displayText}](/compendium/${matchedPost.slug}${anchorSlug})`;
+                const text = anchor ? `${target} ${anchor}${suffix}` : `${target}${suffix}`;
+                return `[${text}](/compendium/${matchedPost.slug}${anchorSlug})`;
             }
 
-            // Target is an unpublished / private vault note: cleanly strip brackets
-            return displayText;
+            return anchor ? `${target} ${anchor}${suffix}` : `${target}${suffix}`;
         }
     );
 }
 
 /**
- * Extracts Table of Contents from markdown headings (H2 & H3)
- */
-export function extractToc(markdown: string): TocItem[] {
-    const toc: TocItem[] = [];
-    const lines = markdown.split("\n");
-
-    for (const line of lines) {
-        const match = line.match(/^(#{2,3})\s+(.+)$/);
-        if (match) {
-            const level = match[1].length as 2 | 3;
-            const rawText = match[2].trim();
-            // Clean markdown syntax from heading text for TOC display
-            const text = rawText
-                .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, "$2 || $1")
-                .replace(/`([^`]+)`/g, "$1")
-                .replace(/[*_]/g, "");
-            const id = slugify(text);
-            toc.push({ id, text, level });
-        }
-    }
-
-    return toc;
-}
-
-/**
- * Transforms callout syntax (> [!NOTE]) into styled HTML divs
- */
-function transformCallouts(markdown: string): string {
-    const CALLOUT_REGEX = />\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\s+([^\n]*))?\n((?:>[^\n]*\n?)*)/gi;
-
-    return markdown.replace(CALLOUT_REGEX, (match, type, title, body) => {
-        const calloutType = type.toLowerCase();
-        const calloutTitle = title ? title.trim() : type.toUpperCase();
-        const cleanBody = body
-            .split("\n")
-            .map((line: string) => line.replace(/^>\s?/, ""))
-            .join("\n")
-            .trim();
-
-        return `<div class="callout not-prose callout-${calloutType}">
-<div class="callout-header"><span class="callout-icon"></span><span class="callout-title">${calloutTitle}</span></div>
-<div class="callout-content">
-
-${cleanBody}
-
-</div>
-</div>\n`;
-    });
-}
-
-/**
- * Compiles mathematical expressions ($...$ and $$...$$) using KaTeX
- */
-function transformMath(markdown: string): string {
-    // Block math $$...$$
-    let result = markdown.replace(/\$\$([\s\S]+?)\$\$/g, (match, math) => {
-        try {
-            return katex.renderToString(math.trim(), {
-                displayMode: true,
-                throwOnError: false,
-            });
-        } catch {
-            return match;
-        }
-    });
-
-    // Inline math $...$ (avoiding currency amounts like $100)
-    result = result.replace(/(^|[^\\])\$([^\$\n]+?)\$/g, (match, prefix, math) => {
-        try {
-            const rendered = katex.renderToString(math.trim(), {
-                displayMode: false,
-                throwOnError: false,
-            });
-            return `${prefix}${rendered}`;
-        } catch {
-            return match;
-        }
-    });
-
-    return result;
-}
-
-/**
- * Highlights code blocks using Shiki with a dark slate theme
- */
-async function highlightCodeBlocks(markdown: string): Promise<string> {
-    const CODE_BLOCK_REGEX = /```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g;
-    const matches: Array<{ full: string; lang: string; code: string }> = [];
-
-    let match;
-    while ((match = CODE_BLOCK_REGEX.exec(markdown)) !== null) {
-        matches.push({
-            full: match[0],
-            lang: match[1] || "text",
-            code: match[2],
-        });
-    }
-
-    let result = markdown;
-    for (const item of matches) {
-        let highlighted = "";
-        try {
-            highlighted = await codeToHtml(item.code, {
-                lang: item.lang.toLowerCase() || "text",
-                theme: "github-dark-dimmed",
-            });
-        } catch {
-            // Fallback for uncommon or unknown language tokens
-            highlighted = `<pre class="shiki github-dark-dimmed"><code>${item.code
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")}</code></pre>`;
-        }
-
-        const wrapped = `<div class="code-block-wrapper not-prose my-6 rounded-lg border border-slate-800 bg-[#1e2227] overflow-hidden">
-<div class="code-block-header flex items-center justify-between px-4 py-1.5 bg-slate-900/90 border-b border-slate-800 text-xs font-mono text-slate-400">
-<span>${item.lang || "plaintext"}</span>
-</div>
-<div class="code-block-body text-sm font-mono overflow-x-auto p-4">
-${highlighted}
-</div>
-</div>`;
-
-        result = result.replace(item.full, wrapped);
-    }
-
-    return result;
-}
-
-/**
- * Loads a single post by slug, compiling markdown and assembling its local concept graph.
+ * Loads a single post by slug, compiling markdown via unified AST pipeline and assembling concept graph.
  */
 export async function getPostBySlug(slug: string): Promise<CompendiumPost | null> {
     const allPosts = getAllPostsMeta();
@@ -373,43 +602,41 @@ export async function getPostBySlug(slug: string): Promise<CompendiumPost | null
 
     // Track active mentions for graph edges
     const mentionedSlugs = new Set<string>();
+    const slugger = new GithubSlugger();
+    const toc: TocItem[] = [];
 
-    // 1. Resolve wikilinks
-    let processed = resolveWikilinks(rawMarkdown, allPosts, (targetSlug) => {
-        if (targetSlug !== meta.slug) {
-            mentionedSlugs.add(targetSlug);
-        }
-    });
+    // Unified Remark & Rehype Pipeline
+    const processor = unified()
+        .use(remarkParse)
+        .use(remarkGfm)
+        .use(remarkMath)
+        .use(remarkWikilinks, allPosts, (targetSlug: string) => {
+            if (targetSlug !== meta.slug) {
+                mentionedSlugs.add(targetSlug);
+            }
+        })
+        .use(remarkCallouts)
+        .use(remarkRehype, { allowDangerousHtml: true })
+        .use(rehypeHeadingSlugger, slugger, toc)
+        .use(rehypeKatex)
+        .use(rehypeWrapKatex)
+        .use(rehypeShiki, {
+            theme: "github-dark-dimmed",
+            transformers: [
+                {
+                    pre(node) {
+                        node.properties["data-lang"] = this.options.lang || "plaintext";
+                    },
+                },
+            ],
+        })
+        .use(rehypeWrapCodeBlocks)
+        .use(rehypeStringify, { allowDangerousHtml: true });
 
-    // 2. Extract TOC before mutating headings
-    const toc = extractToc(processed);
+    const htmlResult = await processor.process(rawMarkdown);
+    const contentHtml = String(htmlResult);
 
-    // 3. Inject heading IDs for smooth anchor jumping
-    processed = processed.replace(/^(#{2,3})\s+(.+)$/gm, (match, hashes, text) => {
-        const cleanText = text
-            .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, "$2 || $1")
-            .replace(/`([^`]+)`/g, "$1")
-            .replace(/[*_]/g, "");
-        const id = slugify(cleanText);
-        return `${hashes} <span id="${id}"></span>${text}`;
-    });
-
-    // 4. Transform callouts
-    processed = transformCallouts(processed);
-
-    // 5. Transform math
-    processed = transformMath(processed);
-
-    // 6. Highlight code with Shiki
-    processed = await highlightCodeBlocks(processed);
-
-    // 7. Parse remaining markdown into HTML via marked
-    const contentHtml = await marked.parse(processed, {
-        gfm: true,
-        breaks: false,
-    });
-
-    // 8. Assemble Local Concept Graph
+    // Assemble Local Concept Graph
     const nodes: GraphNode[] = [
         {
             id: meta.slug,

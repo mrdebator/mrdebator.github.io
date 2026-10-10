@@ -5,6 +5,7 @@ import { getAllPostsMeta, getPostBySlug } from "@/lib/compendium";
 import MiniMap from "@/components/compendium/mini-map";
 import TableOfContents from "@/components/compendium/table-of-contents";
 import MobileTableOfContents from "@/components/compendium/mobile-toc";
+import CompendiumCodeCopyHandler from "@/components/compendium/copy-code-handler";
 import { Calendar, Clock, ArrowLeft, AlertTriangle } from "lucide-react";
 import "katex/dist/katex.min.css";
 
@@ -87,6 +88,7 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
     return (
         <main className="min-h-screen pt-6 md:pt-24 pb-16">
             <article className="max-w-6xl mx-auto px-4">
+                <CompendiumCodeCopyHandler />
                 {jsonLd && (
                     <script
                         type="application/ld+json"
