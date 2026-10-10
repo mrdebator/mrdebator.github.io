@@ -4,7 +4,8 @@ import Link from "next/link";
 import { getAllPostsMeta, getPostBySlug } from "@/lib/compendium";
 import MiniMap from "@/components/compendium/mini-map";
 import TableOfContents from "@/components/compendium/table-of-contents";
-import { Calendar, Clock, ArrowLeft } from "lucide-react";
+import MobileTableOfContents from "@/components/compendium/mobile-toc";
+import { Calendar, Clock, ArrowLeft, AlertTriangle } from "lucide-react";
 import "katex/dist/katex.min.css";
 
 interface PageProps {
@@ -28,7 +29,12 @@ export async function generateMetadata({ params }: PageProps) {
         };
     }
 
-    return {
+    const meta: {
+        title: string;
+        description: string;
+        openGraph?: any;
+        robots?: { index: boolean; follow: boolean };
+    } = {
         title: `${post.title} | Compendium`,
         description: post.excerpt,
         openGraph: {
@@ -39,6 +45,15 @@ export async function generateMetadata({ params }: PageProps) {
             authors: ["Ansh"],
         },
     };
+
+    if (post.draft) {
+        meta.robots = {
+            index: false,
+            follow: false,
+        };
+    }
+
+    return meta;
 }
 
 export default async function CompendiumArticlePage({ params }: PageProps) {
@@ -48,84 +63,99 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
         notFound();
     }
 
-    // JSON-LD structured data for search crawlers & LLM citation
-    const jsonLd = {
-        "@context": "https://schema.org",
-        "@type": "TechArticle",
-        headline: post.title,
-        description: post.excerpt,
-        datePublished: post.created,
-        author: {
-            "@type": "Person",
-            name: "Ansh",
-            url: "https://anshc.me",
-        },
-        publisher: {
-            "@type": "Person",
-            name: "Ansh",
-        },
-        about: post.domains.map((d) => d.name),
-    };
+    // JSON-LD structured data for search crawlers & LLM citation (suppressed on drafts)
+    const jsonLd = post.draft
+        ? null
+        : {
+              "@context": "https://schema.org",
+              "@type": "TechArticle",
+              headline: post.title,
+              description: post.excerpt,
+              datePublished: post.created,
+              author: {
+                  "@type": "Person",
+                  name: "Ansh",
+                  url: "https://anshc.me",
+              },
+              publisher: {
+                  "@type": "Person",
+                  name: "Ansh",
+              },
+              about: post.domains.map((d) => d.name),
+          };
 
     return (
         <main className="min-h-screen pt-6 md:pt-24 pb-16">
             <article className="max-w-6xl mx-auto px-4">
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
+                {jsonLd && (
+                    <script
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                    />
+                )}
 
-            {/* Back link */}
-            <div className="mb-6">
-                <Link
-                    href="/compendium"
-                    className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-emerald-400 transition-colors"
-                >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    Back to Compendium
-                </Link>
-            </div>
-
-            {/* Article Header (Clean, styled - zero raw YAML) */}
-            <header className="mb-10 pb-8 border-b border-slate-800/80">
-                {/* Domain badges */}
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                    {post.domains.map((d) => (
-                        <Link
-                            key={d.id}
-                            href={`/compendium?domain=${d.slug}`}
-                            className="text-xs font-mono px-2.5 py-1 rounded-md bg-blue-950/70 border border-blue-800/60 text-blue-300 hover:bg-blue-900/60 hover:text-blue-100 transition-colors"
-                        >
-                            {d.name}
-                        </Link>
-                    ))}
+                {/* Back link */}
+                <div className="mb-6">
+                    <Link
+                        href="/compendium"
+                        className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-emerald-400 transition-colors"
+                    >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        Back to Compendium
+                    </Link>
                 </div>
 
-                {/* Title */}
-                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-slate-100 mb-4 leading-tight">
-                    {post.title}
-                </h1>
+                {/* Draft Banner */}
+                {post.draft && (
+                    <div className="mb-6 flex items-center gap-2.5 px-4 py-3 rounded-lg bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs font-mono">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                        <span>Draft Note: This article is unpublished work-in-progress and excluded from search engine indexing.</span>
+                    </div>
+                )}
 
-                {/* Meta details */}
-                <div className="flex flex-wrap items-center gap-5 text-xs text-slate-400 font-mono">
-                    <span className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        {post.formattedDate}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-500" />
-                        {post.readingTimeMinutes} min read
-                    </span>
-                    <span className="text-slate-600">•</span>
-                    <span className="text-slate-400">By Ansh</span>
-                </div>
-            </header>
+                {/* Article Header (Clean, styled - zero raw YAML) */}
+                <header className="mb-10 pb-8 border-b border-slate-800/80">
+                    {/* Domain badges */}
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                        {post.domains.map((d) => (
+                            <Link
+                                key={d.id}
+                                href={`/compendium?domain=${d.slug}`}
+                                className="text-xs font-mono px-2.5 py-1 rounded-md bg-blue-950/70 border border-blue-800/60 text-blue-300 hover:bg-blue-900/60 hover:text-blue-100 transition-colors"
+                            >
+                                {d.name}
+                            </Link>
+                        ))}
+                    </div>
 
-            {/* Main Content Layout with Desktop Sticky Rail */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                {/* Left/Center Column: Rendered Prose */}
-                <div className="lg:col-span-8 min-w-0">
-                    <div
+                    {/* Title */}
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-slate-100 mb-4 leading-tight">
+                        {post.title}
+                    </h1>
+
+                    {/* Meta details */}
+                    <div className="flex flex-wrap items-center gap-5 text-xs text-slate-400 font-mono">
+                        <span className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                            {post.formattedDate}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-slate-500" />
+                            {post.readingTimeMinutes} min read
+                        </span>
+                        <span className="text-slate-600">•</span>
+                        <span className="text-slate-400">By Ansh</span>
+                    </div>
+                </header>
+
+                {/* Main Content Layout with Desktop Sticky Rail */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                    {/* Left/Center Column: Rendered Prose */}
+                    <div className="lg:col-span-8 min-w-0">
+                        {/* Mobile Table of Contents Accordion */}
+                        <MobileTableOfContents toc={post.toc} />
+
+                        <div
                         className="compendium-content prose prose-slate dark:prose-invert max-w-none 
                         prose-headings:text-slate-100 prose-headings:font-semibold prose-headings:scroll-mt-24
                         prose-h1:hidden prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:border-slate-800/70 prose-h2:pb-2

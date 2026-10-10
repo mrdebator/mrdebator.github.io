@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { CompendiumPostMeta } from "@/lib/compendium";
 import { DomainMeta } from "@/lib/domains";
-import { Calendar, Clock, ArrowRight, BookOpen, Layers } from "lucide-react";
+import { Calendar, Clock, ArrowRight, BookOpen, Layers, Search, X } from "lucide-react";
 
 interface CompendiumClientPageProps {
     initialPosts: CompendiumPostMeta[];
@@ -15,21 +16,77 @@ export default function CompendiumClientPage({
     initialPosts,
     domainsWithCounts,
 }: CompendiumClientPageProps) {
-    const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+
+    const domainParam = searchParams.get("domain");
+    const [selectedDomain, setSelectedDomain] = useState<string | null>(domainParam);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    useEffect(() => {
+        setSelectedDomain(domainParam);
+    }, [domainParam]);
+
+    const handleSelectDomain = (slug: string | null) => {
+        setSelectedDomain(slug);
+        const params = new URLSearchParams(searchParams.toString());
+        if (slug) {
+            params.set("domain", slug);
+        } else {
+            params.delete("domain");
+        }
+        const queryStr = params.toString();
+        const nextUrl = queryStr ? `${pathname}?${queryStr}` : pathname;
+        router.replace(nextUrl, { scroll: false });
+    };
 
     const filteredPosts = useMemo(() => {
-        if (!selectedDomain) return initialPosts;
-        return initialPosts.filter((post) =>
-            post.domains.some((d) => d.slug === selectedDomain || d.id === selectedDomain)
-        );
-    }, [initialPosts, selectedDomain]);
+        const query = searchQuery.trim().toLowerCase();
+        return initialPosts.filter((post) => {
+            const matchesDomain =
+                !selectedDomain ||
+                post.domains.some((d) => d.slug === selectedDomain || d.id === selectedDomain);
+            if (!matchesDomain) return false;
+
+            if (!query) return true;
+
+            const matchesTitle = post.title.toLowerCase().includes(query);
+            const matchesExcerpt = post.excerpt ? post.excerpt.toLowerCase().includes(query) : false;
+            const matchesContent = post.content ? post.content.toLowerCase().includes(query) : false;
+            const matchesDomains = post.domains.some((d) => d.name.toLowerCase().includes(query));
+
+            return matchesTitle || matchesExcerpt || matchesContent || matchesDomains;
+        });
+    }, [initialPosts, selectedDomain, searchQuery]);
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-8">
+            {/* Instant Search Bar */}
+            <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search notes by title, topic, or content..."
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-900/60 border border-slate-800 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all backdrop-blur-sm"
+                />
+                {searchQuery && (
+                    <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
+                        title="Clear search"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+
             {/* Domain Filter Bar */}
-            <div className="flex flex-wrap items-center gap-2 pt-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <button
-                    onClick={() => setSelectedDomain(null)}
+                    onClick={() => handleSelectDomain(null)}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                         selectedDomain === null
                             ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20"
@@ -45,7 +102,7 @@ export default function CompendiumClientPage({
                     return (
                         <button
                             key={domain.id}
-                            onClick={() => setSelectedDomain(isSelected ? null : domain.slug)}
+                            onClick={() => handleSelectDomain(isSelected ? null : domain.slug)}
                             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                                 isSelected
                                     ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
@@ -66,7 +123,11 @@ export default function CompendiumClientPage({
                 {filteredPosts.length === 0 ? (
                     <div className="text-center py-16 border border-dashed border-slate-800 rounded-xl bg-slate-900/30">
                         <BookOpen className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                        <p className="text-slate-400 text-sm">No notes found for this domain category.</p>
+                        <p className="text-slate-400 text-sm">
+                            {searchQuery
+                                ? `No notes found matching "${searchQuery}".`
+                                : "No notes found for this domain category."}
+                        </p>
                     </div>
                 ) : (
                     filteredPosts.map((post) => (
@@ -81,7 +142,7 @@ export default function CompendiumClientPage({
                                         key={d.id}
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedDomain(d.slug);
+                                            handleSelectDomain(d.slug);
                                         }}
                                         className="text-[11px] font-mono px-2.5 py-0.5 rounded-md bg-blue-950/60 border border-blue-800/50 text-blue-300 hover:bg-blue-900/60 hover:text-blue-200 transition-colors"
                                     >

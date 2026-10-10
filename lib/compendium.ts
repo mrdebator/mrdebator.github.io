@@ -16,6 +16,7 @@ export interface CompendiumPostMeta {
     domains: DomainMeta[];
     readingTimeMinutes: number;
     excerpt: string;
+    content?: string;
     draft: boolean;
     filename: string;
 }
@@ -88,10 +89,22 @@ function getCompendiumFiles(): string[] {
         .filter((file) => file.endsWith(".md") && !file.startsWith("."));
 }
 
+let cachedPostsMeta: CompendiumPostMeta[] | null = null;
+
+export function _clearPostsCache(): void {
+    cachedPostsMeta = null;
+}
+
 /**
  * Loads all Compendium post metadata, sorted newest first.
+ * Dual-tier caching: bypasses cache in development for Fast Refresh;
+ * memoizes frozen array in production for O(N) SSG build disk I/O.
  */
 export function getAllPostsMeta(): CompendiumPostMeta[] {
+    if (process.env.NODE_ENV === "production" && cachedPostsMeta) {
+        return cachedPostsMeta;
+    }
+
     const files = getCompendiumFiles();
     const posts: CompendiumPostMeta[] = [];
 
@@ -151,6 +164,7 @@ export function getAllPostsMeta(): CompendiumPostMeta[] {
             domains,
             readingTimeMinutes,
             excerpt,
+            content: cleanContent,
             draft: Boolean(data.draft),
             filename,
         });
@@ -158,6 +172,11 @@ export function getAllPostsMeta(): CompendiumPostMeta[] {
 
     // Sort newest first
     posts.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
+
+    if (process.env.NODE_ENV === "production") {
+        cachedPostsMeta = Object.freeze([...posts]) as CompendiumPostMeta[];
+    }
+
     return posts;
 }
 

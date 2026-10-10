@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import SectionHeading from "@/components/section-heading";
 import { getAllPostsMeta } from "@/lib/compendium";
 import { COMPENDIUM_DOMAINS } from "@/lib/domains";
@@ -8,6 +9,23 @@ export const metadata = {
     title: "Compendium",
     description: "A structured compendium of systems research, kernel internals, and technical architecture notes.",
 };
+
+function CompendiumSkeleton() {
+    return (
+        <div className="space-y-10 animate-pulse">
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+                <div className="h-8 w-28 rounded-full bg-slate-800/80" />
+                <div className="h-8 w-36 rounded-full bg-slate-800/80" />
+                <div className="h-8 w-32 rounded-full bg-slate-800/80" />
+            </div>
+            <div className="h-10 w-full rounded-xl bg-slate-800/50" />
+            <div className="space-y-6">
+                <div className="h-36 rounded-xl bg-slate-900/40 border border-slate-800/80" />
+                <div className="h-36 rounded-xl bg-slate-900/40 border border-slate-800/80" />
+            </div>
+        </div>
+    );
+}
 
 export default function CompendiumPage() {
     const posts = getAllPostsMeta().filter((p) => !p.draft);
@@ -27,7 +45,9 @@ export default function CompendiumPage() {
                         subtitle="A structured technical compendium documenting operating systems internals, security research, and engineering notes organized by domain."
                     />
                 </div>
-                <CompendiumClientPage initialPosts={posts} domainsWithCounts={domainsWithCounts} />
+                <Suspense fallback={<CompendiumSkeleton />}>
+                    <CompendiumClientPage initialPosts={posts} domainsWithCounts={domainsWithCounts} />
+                </Suspense>
             </div>
         </main>
     );
