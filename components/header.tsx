@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-    Home, Menu, X, GraduationCap, Briefcase, Award, Feather, Newspaper, FileText, Code
+    Home, Menu, X, GraduationCap, Briefcase, Award, Feather, Newspaper, FileText, Code, BookOpen
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -19,6 +19,7 @@ export default function Header() {
         { name: "Publications", href: "/publications", icon: Feather },
         { name: "Media", href: "/media", icon: Newspaper },
         { name: "Projects", href: "/projects", icon: Code },
+        { name: "Compendium", href: "/compendium", icon: BookOpen },
     ]
 
     const mobileBottomBarLinks = [
