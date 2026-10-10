@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { COMPENDIUM_DOMAINS, normalizeDomain } from "../lib/domains";
-import { extractToc, getAllPostsMeta, slugify } from "../lib/compendium";
+import { extractToc, getAllPostsMeta, slugify, slugifyAnchor } from "../lib/compendium";
 
 const COMPENDIUM_DIR = path.join(process.cwd(), "content", "compendium");
 const isFixMode = process.argv.includes("--fix");
@@ -100,16 +100,30 @@ function runLinter() {
         }
 
         // 4. Wikilink resolution audit
-        const wikilinkRegex = /\[\[([^\]|#]+)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]([a-zA-Z]*)/g;
+        const wikilinkRegex = /\[\[([^\]|#]*)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]([a-zA-Z]*)/g;
         let match;
         const headings = extractToc(content);
         const headingIds = new Set(headings.map((h) => h.id));
 
         while ((match = wikilinkRegex.exec(content)) !== null) {
             totalWikilinks++;
-            const target = match[1].trim();
+            const target = (match[1] || "").trim();
             const anchor = match[2] ? match[2].trim() : null;
             const targetLower = target.toLowerCase();
+
+            // Internal jump: [[#Section]]
+            if (!target && anchor) {
+                resolvedLinks++;
+                const expectedId = slugifyAnchor(anchor);
+                if (!headingIds.has(expectedId)) {
+                    issues.push({
+                        file: filename,
+                        level: "warn",
+                        message: `Internal heading anchor '#${anchor}' does not match any heading in this post.`,
+                    });
+                }
+                continue;
+            }
 
             const isSelf =
                 targetLower === (data.title || "").toLowerCase() ||
@@ -119,14 +133,18 @@ function runLinter() {
                 (p) =>
                     p.title.toLowerCase() === targetLower ||
                     p.filename.replace(/\.md$/, "").toLowerCase() === targetLower ||
-                    p.slug === slugify(target)
+                    p.slug === slugify(target) ||
+                    (p.aliases &&
+                        p.aliases.some(
+                            (a) => a.toLowerCase() === targetLower || slugify(a) === slugify(target)
+                        ))
             );
 
             if (matchedPost) {
                 resolvedLinks++;
-                // If it references an anchor in the same or published post, check if the anchor exists
+                // If it references an anchor in the same post, check if the anchor exists
                 if (isSelf && anchor) {
-                    const expectedId = slugify(anchor);
+                    const expectedId = slugifyAnchor(anchor);
                     if (!headingIds.has(expectedId)) {
                         issues.push({
                             file: filename,
@@ -140,22 +158,15 @@ function runLinter() {
             }
         }
 
-        // 5. Fix mode: Clean obsolete Obsidian Zettelkasten tags
+        // 5. Fix mode: Clean obsolete Obsidian Zettelkasten tags and types
         if (isFixMode) {
             let changed = false;
-            if ("type" in fileData && fileData.type === "distilled") {
+            if ("type" in fileData) {
                 delete fileData.type;
                 changed = true;
             }
-            if ("tags" in fileData && Array.isArray(fileData.tags)) {
-                const cleanedTags = fileData.tags.filter(
-                    (t: string) => !t.startsWith("Zettel/")
-                );
-                if (cleanedTags.length === 0) {
-                    delete fileData.tags;
-                } else {
-                    fileData.tags = cleanedTags;
-                }
+            if ("tags" in fileData) {
+                delete fileData.tags;
                 changed = true;
             }
 

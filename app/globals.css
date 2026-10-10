@@ -38,3 +38,39 @@
         background-image: radial-gradient(ellipse at center top, theme('colors.slate.800'), theme('colors.slate.950') 35%);
     }
 }
+
+@layer components {
+    .callout {
+        @apply my-6 rounded-xl border p-4 text-sm font-sans backdrop-blur-sm bg-slate-900/40 border-slate-800;
+    }
+    .callout-header {
+        @apply flex items-center gap-2 font-semibold mb-2;
+    }
+    .callout-title {
+        @apply font-semibold;
+    }
+    .callout-note {
+        @apply border-blue-800/60 bg-blue-950/30 text-slate-200;
+    }
+    .callout-note .callout-title {
+        @apply text-blue-400;
+    }
+    .callout-tip {
+        @apply border-emerald-800/60 bg-emerald-950/30 text-slate-200;
+    }
+    .callout-tip .callout-title {
+        @apply text-emerald-400;
+    }
+    .callout-warning, .callout-caution {
+        @apply border-amber-800/60 bg-amber-950/30 text-slate-200;
+    }
+    .callout-warning .callout-title, .callout-caution .callout-title {
+        @apply text-amber-400;
+    }
+    .callout-important {
+        @apply border-purple-800/60 bg-purple-950/30 text-slate-200;
+    }
+    .callout-important .callout-title {
+        @apply text-purple-400;
+    }
+}

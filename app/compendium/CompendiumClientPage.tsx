@@ -98,7 +98,7 @@ export default function CompendiumClientPage({
                 </button>
 
                 {domainsWithCounts.map(({ domain, count }) => {
-                    const isSelected = selectedDomain === domain.slug;
+                    const isSelected = selectedDomain === domain.slug || selectedDomain === domain.id;
                     return (
                         <button
                             key={domain.id}

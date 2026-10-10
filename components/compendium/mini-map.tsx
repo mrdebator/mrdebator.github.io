@@ -150,6 +150,11 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
 
         // Simulation tick: updates positions until cooled down
         simulation.on("tick", () => {
+            for (const d of nodes) {
+                d.x = Math.max(16, Math.min(width - 16, d.x || width / 2));
+                d.y = Math.max(16, Math.min(height - 16, d.y || height / 2));
+            }
+
             link.attr("x1", (d) => (d.source as SimNode).x || 0)
                 .attr("y1", (d) => (d.source as SimNode).y || 0)
                 .attr("x2", (d) => (d.target as SimNode).x || 0)

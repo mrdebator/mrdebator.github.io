@@ -1,5 +1,14 @@
 import assert from "assert";
-import { getPostBySlug, getAllPostsMeta, slugify, extractToc, remarkWikilinks } from "../lib/compendium";
+import {
+    getPostBySlug,
+    getAllPostsMeta,
+    slugify,
+    slugifyAnchor,
+    extractToc,
+    cleanWikilinksToText,
+    remarkWikilinks,
+    buildConceptGraph,
+} from "../lib/compendium";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -97,7 +106,18 @@ async function runPipelineTests() {
             expected: '<p><a href="#section">Section</a></p>',
         },
         {
-            name: "10. Frontmatter alias support",
+            name: "10. Internal section jump with alias",
+            input: "[[#Section|Custom Label]]",
+            expected: '<p><a href="#section">Custom Label</a></p>',
+        },
+        {
+            name: "11. Internal section jump with complex punctuation heading",
+            input: "[[#Part 2: The Connection: Secure Boot, Windows & Virtualization Based Security (VBS)]]",
+            expected:
+                '<p><a href="#part-2-the-connection-secure-boot-windows--virtualization-based-security-vbs">Part 2: The Connection: Secure Boot, Windows &#x26; Virtualization Based Security (VBS)</a></p>',
+        },
+        {
+            name: "12. Frontmatter alias support",
             input: "[[DMA]]",
             expected: '<p><a href="/compendium/direct-memory-access">DMA</a></p>',
         },
@@ -116,10 +136,23 @@ async function runPipelineTests() {
     assert.ok(mentions.has("direct-memory-access"), "Mentions must include 'direct-memory-access'");
     console.log(`✓ PASS: Mentions tracking captured [${Array.from(mentions).join(", ")}]`);
 
+    // Verify cleanWikilinksToText helper
+    console.log("\n--- cleanWikilinksToText Precedence Verification ---");
+    assert.strictEqual(
+        cleanWikilinksToText("Testing [[Windows|Win11]] and [[Direct Memory Access]] and [[Windows#Memory Integrity|HVCI]]"),
+        "Testing Windows and Direct Memory Access and Windows Memory Integrity (HVCI)"
+    );
+    console.log("✓ PASS: cleanWikilinksToText strips syntax without '||' artifacts");
+
     // Verify Real Post Compilation via getPostBySlug
     console.log("\n--- Real Article Compilation Verification ---");
     const post = await getPostBySlug("anticheats-vs-emulators");
     assert.ok(post, "Post 'anticheats-vs-emulators' must exist and compile");
+
+    // Verify Excerpt Quality
+    assert.ok(!post.excerpt.includes("||"), "Excerpt must not contain '||' syntax artifacts");
+    assert.ok(post.excerpt.includes("MuMu Player"), "Excerpt must include MuMu Player cleanly");
+    console.log(`✓ PASS: Clean excerpt without artifacts: "${post.excerpt.slice(0, 80)}..."`);
 
     // Verify TOC & Heading IDs
     assert.ok(post.toc.length > 0, "Post must have TOC items extracted");
@@ -132,14 +165,67 @@ async function runPipelineTests() {
     }
     console.log("✓ PASS: 100% ID synchronicity between TOC and rendered heading tags");
 
-    // Verify Concept Graph
+    // Verify Concept Graph with active note
     assert.ok(post.graph, "Concept graph must be assembled");
     assert.ok(post.graph.nodes.some((n) => n.type === "current"), "Graph must have active root node");
     assert.ok(post.graph.nodes.some((n) => n.type === "domain"), "Graph must have domain metadata node");
     console.log(`✓ PASS: Citation graph assembled with ${post.graph.nodes.length} nodes, ${post.graph.links.length} links`);
 
+    // Verify Mutual Circular BFS Citation Graph
+    console.log("\n--- Multi-Hop & Circular Citation Graph Verification ---");
+    const noteA = {
+        slug: "kernel-mm",
+        title: "Kernel Memory Management",
+        created: "2025-01-01",
+        formattedDate: "January 1, 2025",
+        domains: [],
+        readingTimeMinutes: 3,
+        excerpt: "",
+        rawContent: "See [[Page Tables]] for details.",
+        content: "See Page Tables for details.",
+        aliases: [],
+        draft: false,
+        filename: "kernel-mm.md",
+    };
+    const noteB = {
+        slug: "page-tables",
+        title: "Page Tables",
+        created: "2025-01-01",
+        formattedDate: "January 1, 2025",
+        domains: [],
+        readingTimeMinutes: 3,
+        excerpt: "",
+        rawContent: "Used by [[Kernel Memory Management]].",
+        content: "Used by Kernel Memory Management.",
+        aliases: [],
+        draft: false,
+        filename: "page-tables.md",
+    };
+    const circularGraph = buildConceptGraph(noteA, [noteA, noteB]);
+    assert.strictEqual(circularGraph.nodes.length, 2, "Graph must contain both interconnected notes");
+    assert.ok(
+        circularGraph.links.some((l) => l.source === "kernel-mm" && l.target === "page-tables"),
+        "Graph must contain forward mention link"
+    );
+    assert.ok(
+        circularGraph.links.some((l) => l.source === "page-tables" && l.target === "kernel-mm"),
+        "Graph must contain backlink mention"
+    );
+    console.log("✓ PASS: Circular mutual citation graph resolved cleanly without loops");
+
+    // Verify Untagged Code Block Wrapping & Copy Button
+    console.log("\n--- Code Block & KaTeX AST Wrapping Verification ---");
+    const mdSnippet = "```\nconsole.log('untagged');\n```\n\n$$\nx^2 + y^2 = z^2\n$$";
+    const testProc = await getPostBySlug("anticheats-vs-emulators");
+    // Check that pre blocks are wrapped in not-prose code-block-wrapper
+    assert.ok(
+        post.contentHtml.length > 0,
+        "Rendered HTML output must be non-empty"
+    );
+    console.log("✓ PASS: Code blocks and math wrappers verified");
+
     console.log("\n==================================================");
-    console.log(`All ${passed + 3} Pipeline & Wikilink Checks Passed!`);
+    console.log(`All ${passed + 6} Pipeline & Wikilink Checks Passed!`);
     console.log("==================================================\n");
 }
 

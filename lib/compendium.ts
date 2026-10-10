@@ -6,10 +6,11 @@ import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkRehype from "remark-rehype";
+import rehypeSlug from "rehype-slug";
 import rehypeKatex from "rehype-katex";
 import rehypeShiki from "@shikijs/rehype";
 import rehypeStringify from "rehype-stringify";
-import { visit } from "unist-util-visit";
+import { visit, SKIP } from "unist-util-visit";
 import GithubSlugger from "github-slugger";
 import { COMPENDIUM_DOMAINS, DomainMeta, normalizeDomain } from "./domains";
 
@@ -23,6 +24,7 @@ export interface CompendiumPostMeta {
     domains: DomainMeta[];
     readingTimeMinutes: number;
     excerpt: string;
+    rawContent?: string;
     content?: string;
     aliases?: string[];
     draft: boolean;
@@ -67,6 +69,50 @@ export function slugify(str: string): string {
         .replace(/['’]/g, "")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
+}
+
+/**
+ * Slugifies in-page anchors and section references using GithubSlugger conventions.
+ */
+export function slugifyAnchor(anchor: string): string {
+    return new GithubSlugger().slug(anchor);
+}
+
+/**
+ * Strips wikilink syntax into plain text adhering strictly to the approved precedence rules:
+ * - Unpublished with anchor: [[Windows#Memory Integrity]] -> "Windows Memory Integrity"
+ * - Unpublished with anchor + alias: [[Windows#Memory Integrity|HVCI]] -> "Windows Memory Integrity (HVCI)"
+ * - Unpublished with alias (no anchor): [[Windows|Win11]] -> "Windows" (target preserved, alias dropped)
+ * - Unpublished without anchor/alias: [[Windows]] -> "Windows"
+ * - Internal section jump: [[#Section]] -> "Section"
+ * - Internal section jump with alias: [[#Section|Custom]] -> "Custom"
+ */
+export function cleanWikilinksToText(markdown: string): string {
+    return markdown.replace(
+        /\[\[([^\]|#]*)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]([a-zA-Z]*)/g,
+        (_match, targetRaw?: string, anchorRaw?: string, aliasRaw?: string, suffixRaw?: string) => {
+            const target = (targetRaw || "").trim();
+            const anchor = anchorRaw ? anchorRaw.trim() : null;
+            const alias = aliasRaw ? aliasRaw.trim() : null;
+            const suffix = suffixRaw || "";
+
+            // Internal jump [[#Section]]
+            if (!target && anchor) {
+                return `${alias || anchor}${suffix}`;
+            }
+
+            // Target + Anchor (+ Alias)
+            if (anchor) {
+                if (alias) {
+                    return `${target} ${anchor} (${alias})${suffix}`;
+                }
+                return `${target} ${anchor}${suffix}`;
+            }
+
+            // Target strictly preserved; alias dropped
+            return `${target}${suffix}`;
+        }
+    );
 }
 
 function formatDate(dateStr: string): string {
@@ -156,13 +202,14 @@ export function getAllPostsMeta(): CompendiumPostMeta[] {
         const wordCount = content.trim().split(/\s+/).length;
         const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 220));
 
-        // Excerpt: find first meaningful paragraph
+        // Excerpt & Clean Content: strip markdown syntax cleanly according to approved precedence rules
         let excerpt = "";
-        const cleanContent = content
-            .replace(/^#+.*$/gm, "")
-            .replace(/\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g, "$2 || $1")
-            .replace(/!\[.*?\]\(.*?\)/g, "")
-            .trim();
+        const cleanContent = cleanWikilinksToText(
+            content
+                .replace(/^#+.*$/gm, "")
+                .replace(/!\[.*?\]\(.*?\)/g, "")
+                .trim()
+        );
         const paragraphs = cleanContent.split(/\n\s*\n/).filter((p) => p.trim().length > 30);
         if (paragraphs.length > 0) {
             excerpt = paragraphs[0].replace(/\n/g, " ").slice(0, 200).trim();
@@ -179,6 +226,7 @@ export function getAllPostsMeta(): CompendiumPostMeta[] {
             domains,
             readingTimeMinutes,
             excerpt,
+            rawContent: content,
             content: cleanContent,
             aliases: rawAliases,
             draft: Boolean(data.draft),
@@ -240,7 +288,7 @@ export function remarkWikilinks(allPosts: CompendiumPostMeta[], onMention?: (slu
                     const text = `${aliasRaw || anchorRaw}${suffix}`;
                     newNodes.push({
                         type: "link",
-                        url: `#${slugify(anchorRaw)}`,
+                        url: `#${slugifyAnchor(anchorRaw)}`,
                         children: [{ type: "text", value: text }],
                     });
                     lastIndex = matchEnd;
@@ -270,7 +318,7 @@ export function remarkWikilinks(allPosts: CompendiumPostMeta[], onMention?: (slu
                     let href = `/compendium/${matchedPost.slug}`;
 
                     if (anchorRaw) {
-                        href += `#${slugify(anchorRaw)}`;
+                        href += `#${slugifyAnchor(anchorRaw)}`;
                         if (aliasRaw) {
                             displayText = `${targetRaw} ${anchorRaw} (${aliasRaw})${suffix}`;
                         } else {
@@ -375,10 +423,10 @@ function remarkCallouts() {
 }
 
 /**
- * Rehype Plugin: Shared GithubSlugger for heading IDs and Table of Contents extraction.
- * Injects IDs directly onto <h2> and <h3> tags and collects TOC entries with 100% synchronicity.
+ * Rehype Plugin: Extracts Table of Contents entries directly from heading elements
+ * whose IDs have been assigned by rehypeSlug, guaranteeing 100% ID synchronicity.
  */
-function rehypeHeadingSlugger(slugger: GithubSlugger, tocCollector: TocItem[]) {
+function rehypeExtractToc(tocCollector: TocItem[]) {
     return (tree: any) => {
         visit(tree, "element", (node: any) => {
             if (node.tagName === "h2" || node.tagName === "h3") {
@@ -388,9 +436,7 @@ function rehypeHeadingSlugger(slugger: GithubSlugger, tocCollector: TocItem[]) {
                     headingText += tNode.value || "";
                 });
                 const cleanText = headingText.trim();
-                const id = slugger.slug(cleanText);
-                node.properties = node.properties || {};
-                node.properties.id = id;
+                const id = String(node.properties?.id || "");
                 tocCollector.push({ id, text: cleanText, level });
             }
         });
@@ -413,12 +459,13 @@ function rehypeWrapKatex() {
                     type: "element",
                     tagName: "div",
                     properties: {
-                        className: ["katex-wrapper", "overflow-x-auto", "my-4", "py-2"],
+                        className: ["katex-wrapper", "not-prose", "overflow-x-auto", "my-4", "py-2"],
                     },
                     children: [node],
                 };
                 if (parent && typeof index === "number") {
                     parent.children[index] = wrapper;
+                    return [SKIP, index + 1];
                 }
             }
         });
@@ -431,8 +478,8 @@ function rehypeWrapKatex() {
 function rehypeWrapCodeBlocks() {
     return (tree: any) => {
         visit(tree, "element", (node: any, index: any, parent: any) => {
-            if (node.tagName === "pre" && node.properties && "data-lang" in node.properties) {
-                const lang = String(node.properties["data-lang"] || "plaintext");
+            if (node.tagName === "pre") {
+                const lang = String(node.properties?.["data-lang"] || "plaintext");
                 const wrapper = {
                     type: "element",
                     tagName: "div",
@@ -515,6 +562,7 @@ function rehypeWrapCodeBlocks() {
                 };
                 if (parent && typeof index === "number") {
                     parent.children[index] = wrapper;
+                    return [SKIP, index + 1];
                 }
             }
         });
@@ -554,14 +602,21 @@ export function resolveWikilinks(
     allPosts: CompendiumPostMeta[],
     onMention?: (targetSlug: string) => void
 ): string {
-    const WIKILINK_REGEX = /\[\[([^\]|#]+)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]([a-zA-Z]*)/g;
+    const WIKILINK_REGEX = /\[\[([^\]|#]*)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]([a-zA-Z]*)/g;
 
     return markdown.replace(
         WIKILINK_REGEX,
-        (match, targetRaw: string, anchorRaw?: string, labelRaw?: string, suffixRaw?: string) => {
-            const target = targetRaw.trim();
+        (_match, targetRaw?: string, anchorRaw?: string, aliasRaw?: string, suffixRaw?: string) => {
+            const target = (targetRaw || "").trim();
             const anchor = anchorRaw ? anchorRaw.trim() : null;
+            const alias = aliasRaw ? aliasRaw.trim() : null;
             const suffix = suffixRaw || "";
+
+            // Internal section jump: [[#Section]]
+            if (!target && anchor) {
+                const text = `${alias || anchor}${suffix}`;
+                return `[${text}](#${slugifyAnchor(anchor)})`;
+            }
 
             const targetLower = target.toLowerCase();
             const targetSlug = slugify(target);
@@ -576,12 +631,25 @@ export function resolveWikilinks(
 
             if (matchedPost) {
                 if (onMention) onMention(matchedPost.slug);
-                const anchorSlug = anchor ? `#${slugify(anchor)}` : "";
-                const text = anchor ? `${target} ${anchor}${suffix}` : `${target}${suffix}`;
-                return `[${text}](/compendium/${matchedPost.slug}${anchorSlug})`;
+                const anchorSlug = anchor ? `#${slugifyAnchor(anchor)}` : "";
+                let displayText = "";
+                if (anchor) {
+                    displayText = alias
+                        ? `${target} ${anchor} (${alias})${suffix}`
+                        : `${target} ${anchor}${suffix}`;
+                } else {
+                    displayText = `${target}${suffix}`;
+                }
+                return `[${displayText}](/compendium/${matchedPost.slug}${anchorSlug})`;
             }
 
-            return anchor ? `${target} ${anchor}${suffix}` : `${target}${suffix}`;
+            // Unpublished note: cleanly stripped plain text per approved precedence rules
+            if (anchor) {
+                return alias
+                    ? `${target} ${anchor} (${alias})${suffix}`
+                    : `${target} ${anchor}${suffix}`;
+            }
+            return `${target}${suffix}`;
         }
     );
 }
@@ -597,10 +665,11 @@ export const MAX_GRAPH_DEPTH = 2;
  */
 function getPostMentions(post: CompendiumPostMeta, allPosts: CompendiumPostMeta[]): Set<string> {
     const mentions = new Set<string>();
-    if (!post.content) return mentions;
+    const sourceText = post.rawContent || post.content;
+    if (!sourceText) return mentions;
     const regex = /\[\[([^\]|#]*)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g;
     let match;
-    while ((match = regex.exec(post.content)) !== null) {
+    while ((match = regex.exec(sourceText)) !== null) {
         const targetRaw = (match[1] || "").trim().toLowerCase();
         if (!targetRaw) continue;
         const targetSlug = slugify(targetRaw);
@@ -766,7 +835,6 @@ export async function getPostBySlug(slug: string): Promise<CompendiumPost | null
 
     // Track active mentions
     const mentionedSlugs = new Set<string>();
-    const slugger = new GithubSlugger();
     const toc: TocItem[] = [];
 
     // Unified Remark & Rehype Pipeline
@@ -781,7 +849,8 @@ export async function getPostBySlug(slug: string): Promise<CompendiumPost | null
         })
         .use(remarkCallouts)
         .use(remarkRehype, { allowDangerousHtml: true })
-        .use(rehypeHeadingSlugger, slugger, toc)
+        .use(rehypeSlug)
+        .use(rehypeExtractToc, toc)
         .use(rehypeKatex)
         .use(rehypeWrapKatex)
         .use(rehypeShiki, {

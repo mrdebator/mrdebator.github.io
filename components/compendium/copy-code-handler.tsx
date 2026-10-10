@@ -16,8 +16,31 @@ export default function CompendiumCodeCopyHandler() {
             if (!codeEl) return;
 
             const codeText = codeEl.innerText || codeEl.textContent || "";
+            let copied = false;
             try {
-                await navigator.clipboard.writeText(codeText);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(codeText);
+                    copied = true;
+                } else {
+                    throw new Error("Clipboard API unavailable");
+                }
+            } catch {
+                try {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = codeText;
+                    textArea.style.position = "fixed";
+                    textArea.style.opacity = "0";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    copied = document.execCommand("copy");
+                    document.body.removeChild(textArea);
+                } catch (fallbackErr) {
+                    console.error("Failed to copy code to clipboard:", fallbackErr);
+                }
+            }
+
+            if (copied) {
                 const textSpan = btn.querySelector(".copy-text");
                 if (textSpan) {
                     const orig = textSpan.textContent;
@@ -28,8 +51,6 @@ export default function CompendiumCodeCopyHandler() {
                         btn.classList.remove("text-emerald-400");
                     }, 2000);
                 }
-            } catch (err) {
-                console.error("Failed to copy code to clipboard:", err);
             }
         };
 
