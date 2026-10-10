@@ -1,11 +1,8 @@
 ---
-title: "Anticheats vs Emulators"
-type: distilled
-tags:
-  - Zettel/Distilled
-created: 2025-10-30 21:13
+title: Anticheats vs Emulators
+created: '2025-10-30 21:13'
 domains:
-  - "[[Operating Systems Internals]]"
+  - '[[Operating Systems Internals]]'
 ---
 
 # Anticheats vs Emulators
