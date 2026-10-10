@@ -210,7 +210,7 @@ export function getAllPostsMeta(): CompendiumPostMeta[] {
  * - Internal section jumps: [[#Section]] -> [Section](#section)
  * - Frontmatter aliases: Target note aliases: [...] supported during lookup
  */
-function remarkWikilinks(allPosts: CompendiumPostMeta[], onMention?: (slug: string) => void) {
+export function remarkWikilinks(allPosts: CompendiumPostMeta[], onMention?: (slug: string) => void) {
     return (tree: any) => {
         visit(tree, "text", (node: any, index: any, parent: any) => {
             if (!node.value || !node.value.includes("[[")) return;
@@ -587,6 +587,170 @@ export function resolveWikilinks(
 }
 
 /**
+ * Configurable maximum traversal degree for local citation mini-map.
+ * User-configurable in source code (default: 2 degrees).
+ */
+export const MAX_GRAPH_DEPTH = 2;
+
+/**
+ * Extracts outbound wikilink mentions from a post's content.
+ */
+function getPostMentions(post: CompendiumPostMeta, allPosts: CompendiumPostMeta[]): Set<string> {
+    const mentions = new Set<string>();
+    if (!post.content) return mentions;
+    const regex = /\[\[([^\]|#]*)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g;
+    let match;
+    while ((match = regex.exec(post.content)) !== null) {
+        const targetRaw = (match[1] || "").trim().toLowerCase();
+        if (!targetRaw) continue;
+        const targetSlug = slugify(targetRaw);
+        const matched = allPosts.find(
+            (p) =>
+                p.title.toLowerCase() === targetRaw ||
+                p.filename.replace(/\.md$/, "").toLowerCase() === targetRaw ||
+                p.slug === targetSlug ||
+                (p.aliases &&
+                    p.aliases.some(
+                        (a) => a.toLowerCase() === targetRaw || slugify(a) === targetSlug
+                    ))
+        );
+        if (matched && matched.slug !== post.slug) {
+            mentions.add(matched.slug);
+        }
+    }
+    return mentions;
+}
+
+/**
+ * Assembles a local citation & backlink concept graph using BFS up to maxDepth.
+ * Decouples domain hubs from BFS expansion so graph stays high-signal.
+ */
+export function buildConceptGraph(
+    currentPost: CompendiumPostMeta,
+    allPosts: CompendiumPostMeta[],
+    maxDepth: number = MAX_GRAPH_DEPTH
+): PostGraph {
+    const nodesMap = new Map<string, GraphNode>();
+    const linksMap = new Map<string, GraphLink>();
+
+    // Add active note
+    nodesMap.set(currentPost.slug, {
+        id: currentPost.slug,
+        label: currentPost.title,
+        type: "current",
+        slug: currentPost.slug,
+        url: `/compendium/${currentPost.slug}`,
+    });
+
+    // Add domain hubs for the active note
+    for (const domain of currentPost.domains) {
+        if (!nodesMap.has(domain.id)) {
+            nodesMap.set(domain.id, {
+                id: domain.id,
+                label: domain.name,
+                type: "domain",
+                url: `/compendium?domain=${domain.slug}`,
+            });
+        }
+        const linkKey = `${currentPost.slug}->${domain.id}:domain`;
+        linksMap.set(linkKey, {
+            source: currentPost.slug,
+            target: domain.id,
+            type: "domain",
+        });
+    }
+
+    // Precompute mention adjacency list
+    const forwardMentions = new Map<string, Set<string>>();
+    for (const p of allPosts) {
+        forwardMentions.set(p.slug, getPostMentions(p, allPosts));
+    }
+
+    // BFS Traversal strictly across citations & backlinks
+    const visitedDepth = new Map<string, number>();
+    visitedDepth.set(currentPost.slug, 0);
+
+    const queue: Array<{ slug: string; depth: number }> = [{ slug: currentPost.slug, depth: 0 }];
+
+    while (queue.length > 0) {
+        const { slug, depth } = queue.shift()!;
+        if (depth >= maxDepth) continue;
+
+        const currentP = allPosts.find((p) => p.slug === slug);
+        if (!currentP) continue;
+
+        // 1. Forward citations (slug mentions neighbor)
+        const forward = forwardMentions.get(slug) || new Set<string>();
+        for (const targetSlug of Array.from(forward)) {
+            const targetP = allPosts.find((p) => p.slug === targetSlug);
+            if (!targetP) continue;
+
+            if (!nodesMap.has(targetSlug)) {
+                nodesMap.set(targetSlug, {
+                    id: targetSlug,
+                    label: targetP.title,
+                    type: "post",
+                    slug: targetSlug,
+                    url: `/compendium/${targetSlug}`,
+                });
+            }
+
+            const linkKey = `${slug}->${targetSlug}:mention`;
+            if (!linksMap.has(linkKey)) {
+                linksMap.set(linkKey, {
+                    source: slug,
+                    target: targetSlug,
+                    type: "mention",
+                });
+            }
+
+            const currentRecordedDepth = visitedDepth.get(targetSlug);
+            if (currentRecordedDepth === undefined || depth + 1 < currentRecordedDepth) {
+                visitedDepth.set(targetSlug, depth + 1);
+                queue.push({ slug: targetSlug, depth: depth + 1 });
+            }
+        }
+
+        // 2. Backlinks (neighbor mentions slug)
+        for (const other of allPosts) {
+            if (other.slug === slug) continue;
+            const otherMentions = forwardMentions.get(other.slug);
+            if (otherMentions && otherMentions.has(slug)) {
+                if (!nodesMap.has(other.slug)) {
+                    nodesMap.set(other.slug, {
+                        id: other.slug,
+                        label: other.title,
+                        type: "post",
+                        slug: other.slug,
+                        url: `/compendium/${other.slug}`,
+                    });
+                }
+
+                const linkKey = `${other.slug}->${slug}:mention`;
+                if (!linksMap.has(linkKey)) {
+                    linksMap.set(linkKey, {
+                        source: other.slug,
+                        target: slug,
+                        type: "mention",
+                    });
+                }
+
+                const currentRecordedDepth = visitedDepth.get(other.slug);
+                if (currentRecordedDepth === undefined || depth + 1 < currentRecordedDepth) {
+                    visitedDepth.set(other.slug, depth + 1);
+                    queue.push({ slug: other.slug, depth: depth + 1 });
+                }
+            }
+        }
+    }
+
+    return {
+        nodes: Array.from(nodesMap.values()),
+        links: Array.from(linksMap.values()),
+    };
+}
+
+/**
  * Loads a single post by slug, compiling markdown via unified AST pipeline and assembling concept graph.
  */
 export async function getPostBySlug(slug: string): Promise<CompendiumPost | null> {
@@ -600,7 +764,7 @@ export async function getPostBySlug(slug: string): Promise<CompendiumPost | null
     const fileContent = fs.readFileSync(fullPath, "utf-8");
     const { content: rawMarkdown } = matter(fileContent);
 
-    // Track active mentions for graph edges
+    // Track active mentions
     const mentionedSlugs = new Set<string>();
     const slugger = new GithubSlugger();
     const toc: TocItem[] = [];
@@ -636,82 +800,14 @@ export async function getPostBySlug(slug: string): Promise<CompendiumPost | null
     const htmlResult = await processor.process(rawMarkdown);
     const contentHtml = String(htmlResult);
 
-    // Assemble Local Concept Graph
-    const nodes: GraphNode[] = [
-        {
-            id: meta.slug,
-            label: meta.title,
-            type: "current",
-            slug: meta.slug,
-            url: `/compendium/${meta.slug}`,
-        },
-    ];
-    const links: GraphLink[] = [];
-
-    // Add domain hubs
-    for (const domain of meta.domains) {
-        nodes.push({
-            id: domain.id,
-            label: domain.name,
-            type: "domain",
-            url: `/compendium?domain=${domain.slug}`,
-        });
-        links.push({
-            source: meta.slug,
-            target: domain.id,
-            type: "domain",
-        });
-
-        // Add sibling articles sharing this domain
-        for (const other of allPosts) {
-            if (other.slug === meta.slug) continue;
-            if (other.domains.some((d) => d.id === domain.id)) {
-                if (!nodes.some((n) => n.id === other.slug)) {
-                    nodes.push({
-                        id: other.slug,
-                        label: other.title,
-                        type: "post",
-                        slug: other.slug,
-                        url: `/compendium/${other.slug}`,
-                    });
-                }
-                if (!links.some((l) => l.source === domain.id && l.target === other.slug)) {
-                    links.push({
-                        source: domain.id,
-                        target: other.slug,
-                        type: "domain",
-                    });
-                }
-            }
-        }
-    }
-
-    // Add direct mention edges
-    for (const targetSlug of Array.from(mentionedSlugs)) {
-        const targetPost = allPosts.find((p) => p.slug === targetSlug);
-        if (targetPost) {
-            if (!nodes.some((n) => n.id === targetPost.slug)) {
-                nodes.push({
-                    id: targetPost.slug,
-                    label: targetPost.title,
-                    type: "post",
-                    slug: targetPost.slug,
-                    url: `/compendium/${targetPost.slug}`,
-                });
-            }
-            links.push({
-                source: meta.slug,
-                target: targetPost.slug,
-                type: "mention",
-            });
-        }
-    }
+    // Assemble Local Concept Graph using BFS citation/backlink traversal
+    const graph = buildConceptGraph(meta, allPosts, MAX_GRAPH_DEPTH);
 
     return {
         ...meta,
         contentHtml,
         rawMarkdown,
         toc,
-        graph: { nodes, links },
+        graph,
     };
 }

@@ -72,17 +72,7 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
             .attr("fill", "url(#mini-grid)")
             .attr("opacity", 0.6);
 
-        // Zoom & Pan
-        const zoom = d3
-            .zoom<SVGSVGElement, unknown>()
-            .scaleExtent([0.6, 2.5])
-            .on("zoom", (event) => {
-                g.attr("transform", event.transform);
-            });
-
-        svg.call(zoom);
-
-        // Force Simulation
+        // Force Simulation - runs to equilibrium and stops (no pan drift or drag collisions)
         const simulation = d3
             .forceSimulation<SimNode>(nodes)
             .force(
@@ -96,7 +86,7 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
             .force("center", d3.forceCenter(width / 2, height / 2))
             .force("collision", d3.forceCollide().radius(24));
 
-        // Links
+        // Links: domain hubs have solid slate line; citations have emerald dashed line
         const link = g
             .append("g")
             .attr("stroke-opacity", 0.6)
@@ -107,34 +97,15 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
             .attr("stroke-width", (d) => (d.type === "domain" ? 1.2 : 1.5))
             .attr("stroke-dasharray", (d) => (d.type === "mention" ? "3,3" : "none"));
 
-        // Drag Behavior
-        const drag = d3
-            .drag<SVGGElement, SimNode>()
-            .on("start", (event, d) => {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                d.fx = d.x;
-                d.fy = d.y;
-            })
-            .on("drag", (event, d) => {
-                d.fx = event.x;
-                d.fy = event.y;
-            })
-            .on("end", (event, d) => {
-                if (!event.active) simulation.alphaTarget(0);
-                d.fx = null;
-                d.fy = null;
-            });
-
-        // Nodes
+        // Static View-Only Nodes (d3.drag removed per specification)
         const node = g
             .append("g")
             .selectAll<SVGGElement, SimNode>("g")
             .data(nodes)
             .join("g")
-            .attr("cursor", (d) => (d.type === "current" ? "default" : "pointer"))
-            .call(drag);
+            .attr("cursor", (d) => (d.type === "current" ? "default" : "pointer"));
 
-        // Node circles
+        // Node circles: Active note = emerald; Domain = blue; Mentions = slate
         node.append("circle")
             .attr("r", (d) => (d.type === "current" ? 12 : d.type === "domain" ? 9 : 8))
             .attr("fill", (d) => {
@@ -164,7 +135,7 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
             .attr("font-family", "system-ui, -apple-system, sans-serif")
             .attr("pointer-events", "none");
 
-        // Hover & Click
+        // Hover Tooltip & Navigation Click
         node.on("mouseenter", (_, d) => {
             setHoveredNode(d);
         })
@@ -177,7 +148,7 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
                 }
             });
 
-        // Simulation tick
+        // Simulation tick: updates positions until cooled down
         simulation.on("tick", () => {
             link.attr("x1", (d) => (d.source as SimNode).x || 0)
                 .attr("y1", (d) => (d.source as SimNode).y || 0)
@@ -232,11 +203,12 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
             </div>
 
             <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-800/50 text-[10px] text-slate-500 font-mono">
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Active
+                    <span className="w-2 h-2 rounded-full bg-slate-500 inline-block ml-1" /> Mention
                     <span className="w-2 h-2 rounded-full bg-blue-500 inline-block ml-1" /> Domain
                 </span>
-                <span>Drag to explore</span>
+                <span>Click note to view</span>
             </div>
         </div>
     );

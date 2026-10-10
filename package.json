@@ -8,7 +8,7 @@
         "start": "next start",
         "lint": "next lint",
         "lint:compendium": "tsx scripts/lint-compendium.ts",
-        "test:pipeline": "tsx scripts/test-phase3-pipeline.ts",
+        "test:pipeline": "tsx scripts/test-ast-pipeline.ts",
         "test:maple": "tsx scripts/test-maple-tree.ts"
     },
     "dependencies": {
