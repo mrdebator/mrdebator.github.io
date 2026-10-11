@@ -110,22 +110,22 @@ export default function ProjectsPage() {
 
                 <div className="max-w-5xl mx-auto space-y-16">
                     {projectsData.map((project) => (
-                        <div key={project.name} className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 items-start">
+                        <div key={project.name} className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
                             {/* Left Column: Visual & Links */}
-                            <div className="md:col-span-1">
+                            <div className="lg:col-span-1">
                                 <div className={`relative aspect-video rounded-lg overflow-hidden border border-border shadow-lg mb-4 ${project.visual.endsWith('.svg') ? 'bg-slate-950' : 'bg-white'}`}>
                                     <NextImage src={project.visual} alt={`Visual for ${project.name}`} fill className="object-contain" />
                                 </div>
-                                <div className="flex flex-col gap-2.5">
+                                <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5">
                                     {project.links.demo && (
-                                        <Button asChild className="w-full">
+                                        <Button asChild className="w-full sm:w-auto lg:w-full">
                                             <Link href={project.links.demo}>
                                                 <Play className="h-4 w-4 mr-2 fill-current" /> Launch Interactive Lab
                                             </Link>
                                         </Button>
                                     )}
                                     {project.links.github && (
-                                        <Button asChild variant={project.links.demo ? "outline" : "default"} className="w-full">
+                                        <Button asChild variant={project.links.demo ? "outline" : "default"} className="w-full sm:w-auto lg:w-full">
                                             <Link href={project.links.github} target="_blank" rel="noopener noreferrer">
                                                 <ExternalLink className="h-4 w-4 mr-2" /> View on GitHub
                                             </Link>
@@ -135,7 +135,7 @@ export default function ProjectsPage() {
                             </div>
 
                             {/* Right Column: Details */}
-                            <div className="md:col-span-2">
+                            <div className="lg:col-span-2">
                                 <p className="text-foreground font-semibold">{project.tagline}</p>
                                 <h3 className="text-3xl font-bold mt-1">{project.name}</h3>
 

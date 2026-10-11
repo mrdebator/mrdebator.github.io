@@ -29,15 +29,15 @@ const careerHighlights = [
 
 export default function Home() {
     return (
-        <main className="min-h-screen pt-4 md:pt-24">
+        <main className="min-h-screen pt-6 md:pt-16 lg:pt-24">
             <div className="container mx-auto px-4 flex flex-col items-center">
-                <div className="mb-12">
-                    <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-full overflow-hidden border-4 border-primary">
+                <div className="mb-8 md:mb-10">
+                    <div className="relative w-56 h-56 sm:w-64 sm:h-64 lg:w-72 lg:h-72 xl:w-80 xl:h-80 rounded-full overflow-hidden border-4 border-primary">
                         <Image src="/AnshC.png" alt="A portrait of Ansh Chandnani" fill className="object-cover" priority />
                     </div>
                 </div>
 
-                <div className="mb-12">
+                <div className="mb-8 md:mb-10">
                     <SocialLinks />
                 </div>
 
