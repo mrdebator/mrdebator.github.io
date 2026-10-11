@@ -147,7 +147,7 @@ export default function PublicationsPage() {
                                             {item.authors.map((author, i) => (
                                                 <React.Fragment key={i}>
                                                     {i > 0 && ", "}
-                                                    <span className={author === "Ansh Chandnani" ? "font-semibold text-[#00ff00]" : ""}>
+                                                    <span className={author === "Ansh Chandnani" ? "font-semibold text-emerald-400" : ""}>
                                                         {author}
                                                     </span>
                                                 </React.Fragment>

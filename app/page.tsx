@@ -43,7 +43,7 @@ export default function Home() {
 
                 <div className="w-full max-w-2xl space-y-6">
                     <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-                        Hi, I'm <span className="text-[#00ff00]">Ansh</span> Chandnani
+                        Hi, I'm <span className="text-emerald-400">Ansh</span> Chandnani
                     </h1>
 
                     <div className="h-8 text-xl text-muted-foreground">
@@ -51,8 +51,8 @@ export default function Home() {
                     </div>
 
                     <p className="text-lg">
-                        I'm a Security Engineer working in <a href="https://blog.google/technology/safety-security/meet-the-team-responsible-for-hacking-google/" target="_blank" rel="noopener noreferrer" className="text-[#00ff00] hover:underline underline-offset-4">Google's Offensive Security team</a>. <br />
-                        I identify, assess, and remediate potential vulnerabilities by conducting penetration tests, researching attack vectors, and developing tools to <a href="https://cloud.google.com/transform/how-google-does-it-red-teaming-at-scale" target="_blank" rel="noopener noreferrer" className="text-[#00ff00] hover:underline underline-offset-4">simulate real-world attacks</a>.
+                        I'm a Security Engineer working in <a href="https://blog.google/technology/safety-security/meet-the-team-responsible-for-hacking-google/" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 hover:underline underline-offset-4 transition-colors">Google's Offensive Security team</a>. <br />
+                        I identify, assess, and remediate potential vulnerabilities by conducting penetration tests, researching attack vectors, and developing tools to <a href="https://cloud.google.com/transform/how-google-does-it-red-teaming-at-scale" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 hover:underline underline-offset-4 transition-colors">simulate real-world attacks</a>.
                     </p>
 
                     <div className="pt-1 text-left">

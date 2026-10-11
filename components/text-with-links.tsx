@@ -24,7 +24,7 @@ export default function TextWithLinks({ text }: { text: string }) {
         const isSafeUrl = url.startsWith('/') || url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:');
         if (isSafeUrl) {
             parts.push(
-                <Link key={matchIndex} href={url} className="text-[#00ff00] hover:underline">
+                <Link key={matchIndex} href={url} className="text-emerald-400 hover:text-emerald-300 hover:underline transition-colors">
                     {linkText}
                 </Link>
             );
