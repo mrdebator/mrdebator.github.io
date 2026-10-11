@@ -100,7 +100,7 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                 <div className="mb-6">
                     <Link
                         href="/compendium"
-                        className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-emerald-400 transition-colors"
+                        className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
                     >
                         <ArrowLeft className="w-3.5 h-3.5" />
                         Back to Compendium
@@ -109,7 +109,7 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
 
                 {/* Draft Banner */}
                 {post.draft && (
-                    <div className="mb-6 flex items-center gap-2.5 px-4 py-3 rounded-lg bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs font-mono">
+                    <div className="mb-6 flex items-center gap-2.5 px-4 py-3 rounded-lg bg-amber-950/40 border border-amber-800/60 text-amber-300 text-xs">
                         <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                         <span>Draft Note: This article is unpublished work-in-progress and excluded from search engine indexing.</span>
                     </div>
@@ -123,7 +123,7 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                     </h1>
 
                     {/* Meta details */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400 font-mono">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400">
                         <span className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 text-slate-500" />
                             {post.formattedDate}
@@ -176,10 +176,10 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                     />
 
                     {/* Bottom Back Button */}
-                    <div className="mt-16 pt-8 border-t border-slate-800 flex items-center justify-between text-xs font-mono">
+                    <div className="mt-16 pt-8 border-t border-slate-800 flex items-center justify-between text-xs">
                         <Link
                             href="/compendium"
-                            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-emerald-400 transition-colors"
+                            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors"
                         >
                             <ArrowLeft className="w-3.5 h-3.5" />
                             Return to Compendium
