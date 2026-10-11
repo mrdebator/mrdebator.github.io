@@ -441,6 +441,20 @@ function getHeadingText(node: any): string {
 }
 
 /**
+ * Remark Plugin: Strips document-level H1 headings from the markdown body AST.
+ * The article header template already renders the canonical H1 title, preventing
+ * phantom hidden DOM elements that break :first-child CSS margin collapse.
+ */
+export function remarkStripDocumentH1() {
+    return (tree: any) => {
+        if (!tree || !Array.isArray(tree.children)) return;
+        tree.children = tree.children.filter(
+            (node: any) => node.type !== "heading" || (node.depth !== 1)
+        );
+    };
+}
+
+/**
  * Remark Plugin: Prunes non-hyperlinked references from the "References" section.
  * Strips out unlinked plain text or unresolved wikilinks in reference lists.
  * If all references in the section are unlinked, prunes the heading and section entirely.
@@ -927,6 +941,7 @@ export async function getPostBySlug(slug: string): Promise<CompendiumPost | null
         .use(remarkParse)
         .use(remarkGfm)
         .use(remarkMath)
+        .use(remarkStripDocumentH1)
         .use(remarkWikilinks, allPosts, (targetSlug: string) => {
             if (targetSlug !== meta.slug) {
                 mentionedSlugs.add(targetSlug);

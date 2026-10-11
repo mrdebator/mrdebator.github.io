@@ -116,7 +116,7 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                 )}
 
                 {/* Article Header (Clean, styled - zero raw YAML) */}
-                <header className="mb-10 pb-8 border-b border-slate-800/80">
+                <header className="mb-8 pb-8 border-b border-slate-800/80">
                     {/* Title */}
                     <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-slate-100 mb-4 leading-tight">
                         {post.title}
@@ -161,7 +161,7 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                         <div
                         className="compendium-content prose prose-slate dark:prose-invert max-w-none 
                         prose-headings:text-slate-100 prose-headings:font-semibold prose-headings:scroll-mt-24
-                        prose-h1:hidden prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:border-slate-800/70 prose-h2:pb-2
+                        prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4 prose-h2:border-b prose-h2:border-slate-800/70 prose-h2:pb-2
                         prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
                         prose-p:text-slate-300 prose-p:leading-relaxed
                         prose-li:text-slate-300
@@ -169,7 +169,8 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                         prose-code:text-emerald-300 prose-code:bg-slate-900/80 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:border prose-code:border-slate-800 prose-code:before:content-none prose-code:after:content-none
                         prose-strong:text-slate-100 prose-strong:font-semibold
                         prose-blockquote:border-l-emerald-500 prose-blockquote:text-slate-400 prose-blockquote:italic
-                        prose-hr:border-slate-800"
+                        prose-hr:border-slate-800
+                        [&>*:first-child]:mt-0"
                         dangerouslySetInnerHTML={{ __html: post.contentHtml }}
                     />
 
