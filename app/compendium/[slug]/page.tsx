@@ -117,26 +117,13 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
 
                 {/* Article Header (Clean, styled - zero raw YAML) */}
                 <header className="mb-10 pb-8 border-b border-slate-800/80">
-                    {/* Domain badges */}
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                        {post.domains.map((d) => (
-                            <Link
-                                key={d.id}
-                                href={`/compendium?domain=${d.slug}`}
-                                className="text-xs font-mono px-2.5 py-1 rounded-md bg-blue-950/70 border border-blue-800/60 text-blue-300 hover:bg-blue-900/60 hover:text-blue-100 transition-colors"
-                            >
-                                {d.name}
-                            </Link>
-                        ))}
-                    </div>
-
                     {/* Title */}
                     <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-slate-100 mb-4 leading-tight">
                         {post.title}
                     </h1>
 
                     {/* Meta details */}
-                    <div className="flex flex-wrap items-center gap-5 text-xs text-slate-400 font-mono">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400 font-mono">
                         <span className="flex items-center gap-1.5">
                             <Calendar className="w-3.5 h-3.5 text-slate-500" />
                             {post.formattedDate}
@@ -145,7 +132,23 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                             <Clock className="w-3.5 h-3.5 text-slate-500" />
                             {post.readingTimeMinutes} min read
                         </span>
-                        <span className="text-slate-600">•</span>
+                        {post.domains.length > 0 && (
+                            <>
+                                <span className="text-slate-600 hidden sm:inline">•</span>
+                                <div className="flex items-center gap-2">
+                                    {post.domains.map((d) => (
+                                        <Link
+                                            key={d.id}
+                                            href={`/compendium?domain=${d.slug}`}
+                                            className="text-slate-400 hover:text-white underline-offset-4 hover:underline transition-colors"
+                                        >
+                                            {d.name}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                        <span className="text-slate-600 hidden sm:inline">•</span>
                         <span className="text-slate-400">By Ansh</span>
                     </div>
                 </header>

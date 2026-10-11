@@ -87,13 +87,13 @@ export default function CompendiumClientPage({
             <div className="flex flex-wrap items-center gap-2">
                 <button
                     onClick={() => handleSelectDomain(null)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                         selectedDomain === null
-                            ? "bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20"
-                            : "bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800/80"
+                            ? "bg-slate-700 text-white"
+                            : "bg-slate-900/80 text-gray-400 hover:text-white hover:bg-slate-800 border border-slate-800/80"
                     }`}
                 >
-                    <Layers className="w-3 h-3" />
+                    <Layers className="w-3.5 h-3.5" />
                     <span>All Domains ({initialPosts.length})</span>
                 </button>
 
@@ -103,14 +103,20 @@ export default function CompendiumClientPage({
                         <button
                             key={domain.id}
                             onClick={() => handleSelectDomain(isSelected ? null : domain.slug)}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                                 isSelected
-                                    ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
-                                    : "bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800/80"
+                                    ? "bg-slate-700 text-white"
+                                    : "bg-slate-900/80 text-gray-400 hover:text-white hover:bg-slate-800 border border-slate-800/80"
                             }`}
                         >
                             <span>{domain.name}</span>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800/80 text-slate-300">
+                            <span
+                                className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                    isSelected
+                                        ? "bg-slate-600 text-slate-200"
+                                        : "bg-slate-800/80 text-slate-400"
+                                }`}
+                            >
                                 {count}
                             </span>
                         </button>
@@ -135,22 +141,6 @@ export default function CompendiumClientPage({
                             key={post.slug}
                             className="group relative rounded-xl border border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/70 hover:border-slate-700/80 transition-all p-6 shadow-sm hover:shadow-md backdrop-blur-sm"
                         >
-                            {/* Domain badges */}
-                            <div className="relative z-10 flex flex-wrap items-center gap-2 mb-3">
-                                {post.domains.map((d) => (
-                                    <button
-                                        key={d.id}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSelectDomain(d.slug);
-                                        }}
-                                        className="text-[11px] font-mono px-2.5 py-0.5 rounded-md bg-blue-950/60 border border-blue-800/50 text-blue-300 hover:bg-blue-900/60 hover:text-blue-200 transition-colors"
-                                    >
-                                        {d.name}
-                                    </button>
-                                ))}
-                            </div>
-
                             {/* Title */}
                             <h2 className="text-xl font-semibold text-slate-100 group-hover:text-emerald-400 transition-colors mb-2">
                                 <Link href={`/compendium/${post.slug}`} className="focus:outline-none">
@@ -167,8 +157,8 @@ export default function CompendiumClientPage({
                             )}
 
                             {/* Meta footer */}
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-800/60 text-xs text-slate-500 font-mono">
-                                <div className="flex items-center gap-4">
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-800/60 text-xs text-slate-500">
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                                     <span className="flex items-center gap-1.5">
                                         <Calendar className="w-3.5 h-3.5" />
                                         {post.formattedDate}
@@ -177,8 +167,27 @@ export default function CompendiumClientPage({
                                         <Clock className="w-3.5 h-3.5" />
                                         {post.readingTimeMinutes} min read
                                     </span>
+                                    {post.domains.length > 0 && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-slate-600 hidden sm:inline">•</span>
+                                            {post.domains.map((d) => (
+                                                <button
+                                                    key={d.id}
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        e.preventDefault();
+                                                        handleSelectDomain(d.slug);
+                                                    }}
+                                                    className="relative z-10 text-slate-400 hover:text-white underline-offset-4 hover:underline transition-colors"
+                                                >
+                                                    {d.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-emerald-400 transition-colors font-sans text-xs font-medium">
+                                <span className="inline-flex items-center gap-1 text-slate-400 group-hover:text-emerald-400 transition-colors text-xs font-medium flex-shrink-0">
                                     Read Note
                                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                                 </span>
