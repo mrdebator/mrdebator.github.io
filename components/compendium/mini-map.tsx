@@ -197,7 +197,7 @@ export default function MiniMap({ graph }: MiniMapProps) {
 
         // Hover & Navigation: Expands bottom title directly beneath node, highlights perimeter only
         node.on("mouseenter", (event, d) => {
-            const targetGroup = d3.select(event.currentTarget);
+            const targetGroup = d3.select<SVGGElement, SimNode>(event.currentTarget as SVGGElement);
             // Elevate hovered node to front so expanded text is never occluded
             targetGroup.raise();
 
@@ -223,7 +223,7 @@ export default function MiniMap({ graph }: MiniMapProps) {
                 .attr("font-size", nodeCount <= 2 ? "10px" : "9.5px");
         })
             .on("mouseleave", (event, d) => {
-                const targetGroup = d3.select(event.currentTarget);
+                const targetGroup = d3.select<SVGGElement, SimNode>(event.currentTarget as SVGGElement);
 
                 // Restore circle perimeter
                 node.selectAll<SVGCircleElement, SimNode>("circle")
