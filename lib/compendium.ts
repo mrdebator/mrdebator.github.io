@@ -422,6 +422,91 @@ function remarkCallouts() {
     };
 }
 
+function hasHyperlink(node: any): boolean {
+    if (!node) return false;
+    if (node.type === "link") return true;
+    if (node.type === "html" && /<a\s/i.test(node.value || "")) return true;
+    if (Array.isArray(node.children)) {
+        return node.children.some(hasHyperlink);
+    }
+    return false;
+}
+
+function getHeadingText(node: any): string {
+    let text = "";
+    visit(node, "text", (tNode: any) => {
+        text += tNode.value || "";
+    });
+    return text.trim();
+}
+
+/**
+ * Remark Plugin: Prunes non-hyperlinked references from the "References" section.
+ * Strips out unlinked plain text or unresolved wikilinks in reference lists.
+ * If all references in the section are unlinked, prunes the heading and section entirely.
+ */
+export function remarkPruneReferences() {
+    return (tree: any) => {
+        if (!tree || !Array.isArray(tree.children)) return;
+
+        let i = 0;
+        while (i < tree.children.length) {
+            const node = tree.children[i];
+            if (node.type === "heading") {
+                const headingText = getHeadingText(node);
+                if (/^references$/i.test(headingText)) {
+                    const headingDepth = node.depth || 2;
+                    let j = i + 1;
+                    const sectionIndicesToRemove: number[] = [];
+                    let hasRemainingHyperlinks = false;
+
+                    while (j < tree.children.length) {
+                        const sibling = tree.children[j];
+                        if (sibling.type === "heading" && (sibling.depth || 2) <= headingDepth) {
+                            break;
+                        }
+
+                        if (sibling.type === "list") {
+                            if (Array.isArray(sibling.children)) {
+                                sibling.children = sibling.children.filter((listItem: any) =>
+                                    hasHyperlink(listItem)
+                                );
+                            }
+                            if (!sibling.children || sibling.children.length === 0) {
+                                sectionIndicesToRemove.push(j);
+                            } else {
+                                hasRemainingHyperlinks = true;
+                            }
+                        } else if (sibling.type === "paragraph") {
+                            if (!hasHyperlink(sibling)) {
+                                sectionIndicesToRemove.push(j);
+                            } else {
+                                hasRemainingHyperlinks = true;
+                            }
+                        } else {
+                            sectionIndicesToRemove.push(j);
+                        }
+
+                        j++;
+                    }
+
+                    // Remove backwards so earlier indices don't shift
+                    for (let r = sectionIndicesToRemove.length - 1; r >= 0; r--) {
+                        tree.children.splice(sectionIndicesToRemove[r], 1);
+                    }
+
+                    // If no hyperlinked references remain, prune the heading itself
+                    if (!hasRemainingHyperlinks) {
+                        tree.children.splice(i, 1);
+                        continue;
+                    }
+                }
+            }
+            i++;
+        }
+    };
+}
+
 /**
  * Rehype Plugin: Extracts Table of Contents entries directly from heading elements
  * whose IDs have been assigned by rehypeSlug, guaranteeing 100% ID synchronicity.
@@ -847,6 +932,7 @@ export async function getPostBySlug(slug: string): Promise<CompendiumPost | null
                 mentionedSlugs.add(targetSlug);
             }
         })
+        .use(remarkPruneReferences)
         .use(remarkCallouts)
         .use(remarkRehype, { allowDangerousHtml: true })
         .use(rehypeSlug)

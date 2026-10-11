@@ -7,6 +7,7 @@ import {
     extractToc,
     cleanWikilinksToText,
     remarkWikilinks,
+    remarkPruneReferences,
     buildConceptGraph,
 } from "../lib/compendium";
 import { unified } from "unified";
@@ -215,17 +216,53 @@ async function runPipelineTests() {
 
     // Verify Untagged Code Block Wrapping & Copy Button
     console.log("\n--- Code Block & KaTeX AST Wrapping Verification ---");
-    const mdSnippet = "```\nconsole.log('untagged');\n```\n\n$$\nx^2 + y^2 = z^2\n$$";
-    const testProc = await getPostBySlug("anticheats-vs-emulators");
-    // Check that pre blocks are wrapped in not-prose code-block-wrapper
     assert.ok(
         post.contentHtml.length > 0,
         "Rendered HTML output must be non-empty"
     );
     console.log("✓ PASS: Code blocks and math wrappers verified");
 
+    // Verify References Section Sanitization
+    console.log("\n--- References Section Sanitization Verification ---");
+    assert.ok(post.contentHtml.includes("MuMu Player Help Center"), "Hyperlinked reference must be preserved");
+    assert.ok(
+        !post.contentHtml.includes("<li>Windows</li>") && !post.contentHtml.includes("<li>\nWindows\n</li>"),
+        "Unlinked 'Windows' reference must be pruned from References section"
+    );
+    console.log("✓ PASS: Real article 'anticheats-vs-emulators' pruned unlinked 'Windows' from References");
+
+    const refProcessor = unified()
+        .use(remarkParse)
+        .use(remarkGfm)
+        .use(remarkWikilinks, mockPosts as any)
+        .use(remarkPruneReferences)
+        .use(remarkRehype)
+        .use(rehypeStringify);
+
+    // Test A: All references unlinked -> section and heading removed entirely
+    const allUnlinkedMd = "# Title\n\nSome body text.\n\n## References\n\n- [[Unknown]]\n- Plain unlinked source\n";
+    const resA = String(await refProcessor.process(allUnlinkedMd));
+    assert.ok(!resA.includes("References"), "Empty References section must be completely pruned");
+    assert.ok(!resA.includes("Unknown"), "Unlinked references must be pruned");
+    console.log("✓ PASS: Completely unlinked References section pruned entirely");
+
+    // Test B: Mixed references -> unlinked pruned, hyperlinked retained
+    const mixedMd = "## References\n\n- [[Unknown]]\n- [Valid Source](https://example.com)\n";
+    const resB = String(await refProcessor.process(mixedMd));
+    assert.ok(resB.includes("References"), "References heading must be retained when links exist");
+    assert.ok(resB.includes('<a href="https://example.com">Valid Source</a>'), "Hyperlinked reference must be retained");
+    assert.ok(!resB.includes("Unknown"), "Unlinked reference must be pruned from mixed list");
+    console.log("✓ PASS: Mixed References pruned unlinked items and preserved hyperlinked ones");
+
+    // Test C: Published wikilink in references -> kept as hyperlink
+    const publishedWikilinkMd = "## References\n\n- [[Unknown]]\n- [[Windows]]\n";
+    const resC = String(await refProcessor.process(publishedWikilinkMd));
+    assert.ok(resC.includes('<a href="/compendium/windows">Windows</a>'), "Published wikilink must be retained as hyperlink in references");
+    assert.ok(!resC.includes("Unknown"), "Unpublished wikilink must be pruned from references");
+    console.log("✓ PASS: Published wikilink retained as valid hyperlink in References");
+
     console.log("\n==================================================");
-    console.log(`All ${passed + 6} Pipeline & Wikilink Checks Passed!`);
+    console.log(`All ${passed + 10} Pipeline & Wikilink Checks Passed!`);
     console.log("==================================================\n");
 }
 
