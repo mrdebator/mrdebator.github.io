@@ -148,8 +148,6 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                                 </div>
                             </>
                         )}
-                        <span className="text-slate-600 hidden sm:inline">•</span>
-                        <span className="text-slate-400">By Ansh</span>
                     </div>
                 </header>
 
@@ -182,9 +180,8 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                             className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors"
                         >
                             <ArrowLeft className="w-3.5 h-3.5" />
-                            Return to Compendium
+                            Back to Compendium
                         </Link>
-                        <span className="text-slate-500">anshc.me / compendium</span>
                     </div>
                 </div>
 
