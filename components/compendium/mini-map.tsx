@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import { useRouter } from "next/navigation";
 import { PostGraph } from "@/lib/compendium";
@@ -26,7 +26,6 @@ interface SimLink extends d3.SimulationLinkDatum<SimNode> {
 export default function MiniMap({ graph }: MiniMapProps) {
     const svgRef = useRef<SVGSVGElement | null>(null);
     const router = useRouter();
-    const [hoveredNode, setHoveredNode] = useState<SimNode | null>(null);
 
     useEffect(() => {
         if (!svgRef.current || !graph || graph.nodes.length === 0) return;
@@ -157,7 +156,33 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .attr("stroke-width", 1.5)
             .style("transition", "stroke 0.2s ease, stroke-width 0.2s ease, fill 0.2s ease");
 
-        // Node Labels: Subtle neutral text
+        // Helper to format expanded multiline label on hover across natural semantic boundaries
+        const wrapLabel = (label: string, maxChars = 20): string[] => {
+            if (label.length <= maxChars) return [label];
+            if (label.includes(": ")) {
+                const idx = label.indexOf(": ");
+                const first = label.slice(0, idx + 1);
+                let second = label.slice(idx + 2);
+                if (second.length > maxChars + 2) second = second.slice(0, maxChars + 2) + "…";
+                return [first, second];
+            }
+            const words = label.split(" ");
+            let line1 = "";
+            let line2 = "";
+            for (const w of words) {
+                if (!line2 && (line1 + " " + w).trim().length <= maxChars) {
+                    line1 = (line1 + " " + w).trim();
+                } else {
+                    line2 = (line2 + " " + w).trim();
+                }
+            }
+            if (line2 && line2.length > maxChars + 2) {
+                line2 = line2.slice(0, maxChars + 2) + "…";
+            }
+            return line2 ? [line1, line2] : [line1];
+        };
+
+        // Node Labels: Subtle neutral text with dark halo for crisp readability
         node.append("text")
             .text((d) => (d.label.length > 14 ? d.label.slice(0, 14) + "…" : d.label))
             .attr("x", 0)
@@ -166,11 +191,17 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .attr("fill", (d) => (d.type === "current" ? "#f1f5f9" : "#94a3b8"))
             .attr("font-size", fontSize)
             .attr("font-family", "system-ui, -apple-system, sans-serif")
-            .attr("pointer-events", "none");
+            .attr("pointer-events", "none")
+            .attr("paint-order", "stroke fill")
+            .attr("stroke", "#020617")
+            .attr("stroke-width", "2.5px")
+            .attr("stroke-linejoin", "round");
 
-        // Hover Tooltip & Navigation Click with Interactive Graph Focus
-        node.on("mouseenter", (_, d) => {
-            setHoveredNode(d);
+        // Hover & Navigation: Expands bottom title directly beneath node, highlights connected graph
+        node.on("mouseenter", (event, d) => {
+            const targetGroup = d3.select(event.currentTarget);
+            // Elevate hovered node to front so expanded text is never occluded
+            targetGroup.raise();
 
             // Highlight hovered node circle with emerald accent
             node.selectAll<SVGCircleElement, SimNode>("circle")
@@ -196,9 +227,25 @@ export default function MiniMap({ graph }: MiniMapProps) {
                     const tId = (l.target as SimNode).id;
                     return sId === d.id || tId === d.id ? 1.5 : 1;
                 });
+
+            // Expand the bottom text to the full title beneath the circle
+            const textEl = targetGroup.select<SVGTextElement>("text");
+            textEl.text("");
+            const lines = wrapLabel(d.label);
+            lines.forEach((line, i) => {
+                textEl
+                    .append("tspan")
+                    .attr("x", 0)
+                    .attr("dy", i === 0 ? 0 : 12)
+                    .text(line);
+            });
+            textEl
+                .attr("fill", "#ffffff")
+                .attr("font-weight", "600")
+                .attr("font-size", nodeCount <= 2 ? "10px" : "9.5px");
         })
-            .on("mouseleave", () => {
-                setHoveredNode(null);
+            .on("mouseleave", (event, d) => {
+                const targetGroup = d3.select(event.currentTarget);
 
                 // Restore circle borders and node opacities
                 node.selectAll<SVGCircleElement, SimNode>("circle")
@@ -210,6 +257,15 @@ export default function MiniMap({ graph }: MiniMapProps) {
                 link.attr("stroke-opacity", 0.4)
                     .attr("stroke", "#475569")
                     .attr("stroke-width", 1);
+
+                // Collapse back to truncated bottom label
+                const textEl = targetGroup.select<SVGTextElement>("text");
+                textEl.selectAll("tspan").remove();
+                textEl
+                    .text(d.label.length > 14 ? d.label.slice(0, 14) + "…" : d.label)
+                    .attr("fill", d.type === "current" ? "#f1f5f9" : "#94a3b8")
+                    .attr("font-weight", "400")
+                    .attr("font-size", fontSize);
             })
             .on("click", (_, d) => {
                 if (d.type !== "current" && d.url) {
@@ -221,7 +277,7 @@ export default function MiniMap({ graph }: MiniMapProps) {
         simulation.on("tick", () => {
             for (const d of nodes) {
                 d.x = Math.max(34, Math.min(width - 34, d.x || cx));
-                d.y = Math.max(22, Math.min(height - 24, d.y || cy));
+                d.y = Math.max(22, Math.min(height - 30, d.y || cy));
             }
 
             link.attr("x1", (d) => (d.source as SimNode).x || 0)
@@ -243,39 +299,6 @@ export default function MiniMap({ graph }: MiniMapProps) {
         <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 backdrop-blur-sm p-3">
             <div className="relative h-[200px] w-full">
                 <svg ref={svgRef} className="w-full h-full block rounded-lg select-none" />
-
-                {hoveredNode && (() => {
-                    const nodeX = hoveredNode.x ?? 140;
-                    const nodeY = hoveredNode.y ?? 100;
-                    const isNearTop = nodeY < 58;
-                    const clampedXPercent = Math.max(26, Math.min(74, (nodeX / 280) * 100));
-                    const yPercent = (nodeY / 200) * 100;
-
-                    return (
-                        <div
-                            style={{
-                                left: `${clampedXPercent}%`,
-                                top: `${yPercent}%`,
-                                transform: isNearTop
-                                    ? "translate(-50%, 18px)"
-                                    : "translate(-50%, calc(-100% - 14px))",
-                            }}
-                            className="absolute z-20 pointer-events-none max-w-[220px] px-2.5 py-1.5 rounded-lg bg-slate-950/95 border border-slate-700/80 shadow-2xl backdrop-blur-md text-center transition-all duration-150 animate-in fade-in zoom-in-95"
-                        >
-                            <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-100 leading-snug">
-                                {hoveredNode.type === "current" && (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                                )}
-                                <span className="break-words">{hoveredNode.label}</span>
-                            </div>
-                            {hoveredNode.type !== "current" && hoveredNode.url && (
-                                <div className="text-[9.5px] text-emerald-400/90 mt-0.5 font-normal tracking-wide">
-                                    Click to view note →
-                                </div>
-                            )}
-                        </div>
-                    );
-                })()}
             </div>
         </div>
     );
