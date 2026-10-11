@@ -12,7 +12,7 @@ import rehypeShiki from "@shikijs/rehype";
 import rehypeStringify from "rehype-stringify";
 import { visit, SKIP } from "unist-util-visit";
 import GithubSlugger from "github-slugger";
-import { COMPENDIUM_DOMAINS, DomainMeta, normalizeDomain } from "./domains";
+import { DomainMeta, normalizeDomain } from "./domains";
 
 const COMPENDIUM_DIR = path.join(process.cwd(), "content", "compendium");
 
@@ -144,10 +144,6 @@ function getCompendiumFiles(): string[] {
 }
 
 let cachedPostsMeta: CompendiumPostMeta[] | null = null;
-
-export function _clearPostsCache(): void {
-    cachedPostsMeta = null;
-}
 
 /**
  * Loads all Compendium post metadata, sorted newest first.
@@ -412,7 +408,6 @@ function remarkCallouts() {
                     hProperties: { className: ["callout-header"] },
                 },
                 children: [
-                    { type: "text", data: { hName: "span", hProperties: { className: ["callout-icon"] } }, value: "" },
                     { type: "strong", data: { hName: "span", hProperties: { className: ["callout-title"] } }, children: [{ type: "text", value: title }] },
                 ],
             };
@@ -693,65 +688,6 @@ export function extractToc(markdown: string): TocItem[] {
     return toc;
 }
 
-/**
- * Legacy string resolver maintained for external utility compatibility
- */
-export function resolveWikilinks(
-    markdown: string,
-    allPosts: CompendiumPostMeta[],
-    onMention?: (targetSlug: string) => void
-): string {
-    const WIKILINK_REGEX = /\[\[([^\]|#]*)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]([a-zA-Z]*)/g;
-
-    return markdown.replace(
-        WIKILINK_REGEX,
-        (_match, targetRaw?: string, anchorRaw?: string, aliasRaw?: string, suffixRaw?: string) => {
-            const target = (targetRaw || "").trim();
-            const anchor = anchorRaw ? anchorRaw.trim() : null;
-            const alias = aliasRaw ? aliasRaw.trim() : null;
-            const suffix = suffixRaw || "";
-
-            // Internal section jump: [[#Section]]
-            if (!target && anchor) {
-                const text = `${alias || anchor}${suffix}`;
-                return `[${text}](#${slugifyAnchor(anchor)})`;
-            }
-
-            const targetLower = target.toLowerCase();
-            const targetSlug = slugify(target);
-            const matchedPost = allPosts.find(
-                (p) =>
-                    p.title.toLowerCase() === targetLower ||
-                    p.filename.replace(/\.md$/, "").toLowerCase() === targetLower ||
-                    p.slug === targetSlug ||
-                    (p.aliases &&
-                        p.aliases.some((a) => a.toLowerCase() === targetLower || slugify(a) === targetSlug))
-            );
-
-            if (matchedPost) {
-                if (onMention) onMention(matchedPost.slug);
-                const anchorSlug = anchor ? `#${slugifyAnchor(anchor)}` : "";
-                let displayText = "";
-                if (anchor) {
-                    displayText = alias
-                        ? `${target} ${anchor} (${alias})${suffix}`
-                        : `${target} ${anchor}${suffix}`;
-                } else {
-                    displayText = `${target}${suffix}`;
-                }
-                return `[${displayText}](/compendium/${matchedPost.slug}${anchorSlug})`;
-            }
-
-            // Unpublished note: cleanly stripped plain text per approved precedence rules
-            if (anchor) {
-                return alias
-                    ? `${target} ${anchor} (${alias})${suffix}`
-                    : `${target} ${anchor}${suffix}`;
-            }
-            return `${target}${suffix}`;
-        }
-    );
-}
 
 /**
  * Configurable maximum traversal degree for local citation mini-map.

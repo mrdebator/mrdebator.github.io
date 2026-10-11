@@ -7,7 +7,6 @@ import { PostGraph } from "@/lib/compendium";
 
 interface MiniMapProps {
     graph: PostGraph;
-    currentTitle: string;
 }
 
 interface SimNode extends d3.SimulationNodeDatum {

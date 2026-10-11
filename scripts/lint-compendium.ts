@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import { COMPENDIUM_DOMAINS, normalizeDomain } from "../lib/domains";
+import { normalizeDomain } from "../lib/domains";
 import { extractToc, getAllPostsMeta, slugify, slugifyAnchor } from "../lib/compendium";
 
 const COMPENDIUM_DIR = path.join(process.cwd(), "content", "compendium");
@@ -43,7 +43,6 @@ function runLinter() {
         const fullPath = path.join(COMPENDIUM_DIR, filename);
         const rawContent = fs.readFileSync(fullPath, "utf-8");
         const { data, content } = matter(rawContent);
-        let modified = false;
         const fileData = { ...data };
 
         // 1. Title verification

@@ -190,7 +190,7 @@ export default async function CompendiumArticlePage({ params }: PageProps) {
                 <aside className="hidden lg:block lg:col-span-4">
                     <div className="sticky top-24 space-y-6">
                         {/* Concept Mini-Map */}
-                        <MiniMap graph={post.graph} currentTitle={post.title} />
+                        <MiniMap graph={post.graph} />
 
                         {/* Table of Contents */}
                         <TableOfContents toc={post.toc} />

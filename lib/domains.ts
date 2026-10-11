@@ -115,9 +115,3 @@ export function normalizeDomain(rawDomain: string): DomainMeta | null {
     return DOMAIN_NAME_MAP.get(cleaned) || DOMAIN_SLUG_MAP.get(cleaned) || null;
 }
 
-/**
- * Validates whether a raw domain name is a member of the official taxonomy.
- */
-export function isValidDomain(rawDomain: string): boolean {
-    return normalizeDomain(rawDomain) !== null;
-}

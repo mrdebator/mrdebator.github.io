@@ -28,7 +28,9 @@ function CompendiumSkeleton() {
 }
 
 export default function CompendiumPage() {
-    const posts = getAllPostsMeta().filter((p) => !p.draft);
+    const posts = getAllPostsMeta()
+        .filter((p) => !p.draft)
+        .map(({ rawContent: _rawContent, ...post }) => post);
 
     const domainsWithCounts = COMPENDIUM_DOMAINS.map((domain) => {
         const count = posts.filter((p) => p.domains.some((d) => d.id === domain.id)).length;

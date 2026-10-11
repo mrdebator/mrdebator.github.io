@@ -1,10 +1,6 @@
 import assert from "assert";
 import {
     getPostBySlug,
-    getAllPostsMeta,
-    slugify,
-    slugifyAnchor,
-    extractToc,
     cleanWikilinksToText,
     remarkWikilinks,
     remarkPruneReferences,
