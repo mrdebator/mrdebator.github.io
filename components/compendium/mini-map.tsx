@@ -132,7 +132,8 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .data(links)
             .join("line")
             .attr("stroke", "#475569")
-            .attr("stroke-width", 1);
+            .attr("stroke-width", 1)
+            .style("transition", "stroke 0.2s ease, stroke-opacity 0.2s ease, stroke-width 0.2s ease");
 
         // Nodes: Clean, minimalist nodes without color coding or glow effects
         const node = g
@@ -140,7 +141,8 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .selectAll<SVGGElement, SimNode>("g")
             .data(nodes)
             .join("g")
-            .attr("cursor", (d) => (d.type === "current" ? "default" : "pointer"));
+            .attr("cursor", (d) => (d.type === "current" ? "default" : "pointer"))
+            .style("transition", "opacity 0.2s ease");
 
         // Dynamic node radius & typography based on sparsity
         const currentRadius = nodeCount <= 2 ? 7.5 : nodeCount <= 4 ? 7 : 6.5;
@@ -153,7 +155,7 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .attr("fill", (d) => (d.type === "current" ? "#cbd5e1" : "#64748b"))
             .attr("stroke", "#1e293b")
             .attr("stroke-width", 1.5)
-            .style("transition", "fill 0.15s ease");
+            .style("transition", "stroke 0.2s ease, stroke-width 0.2s ease, fill 0.2s ease");
 
         // Node Labels: Subtle neutral text
         node.append("text")
@@ -166,12 +168,48 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .attr("font-family", "system-ui, -apple-system, sans-serif")
             .attr("pointer-events", "none");
 
-        // Hover Tooltip & Navigation Click
+        // Hover Tooltip & Navigation Click with Interactive Graph Focus
         node.on("mouseenter", (_, d) => {
             setHoveredNode(d);
+
+            // Highlight hovered node circle with emerald accent
+            node.selectAll<SVGCircleElement, SimNode>("circle")
+                .attr("stroke", (n) => (n.id === d.id ? "#34d399" : "#1e293b"))
+                .attr("stroke-width", (n) => (n.id === d.id ? 2 : 1.5));
+
+            // Gently dim non-hovered nodes to draw immediate focus
+            node.attr("opacity", (n) => (n.id === d.id ? 1 : 0.35));
+
+            // Illuminate connected links with emerald accent, dim background links
+            link.attr("stroke-opacity", (l) => {
+                const sId = (l.source as SimNode).id;
+                const tId = (l.target as SimNode).id;
+                return sId === d.id || tId === d.id ? 0.9 : 0.12;
+            })
+                .attr("stroke", (l) => {
+                    const sId = (l.source as SimNode).id;
+                    const tId = (l.target as SimNode).id;
+                    return sId === d.id || tId === d.id ? "#34d399" : "#475569";
+                })
+                .attr("stroke-width", (l) => {
+                    const sId = (l.source as SimNode).id;
+                    const tId = (l.target as SimNode).id;
+                    return sId === d.id || tId === d.id ? 1.5 : 1;
+                });
         })
             .on("mouseleave", () => {
                 setHoveredNode(null);
+
+                // Restore circle borders and node opacities
+                node.selectAll<SVGCircleElement, SimNode>("circle")
+                    .attr("stroke", "#1e293b")
+                    .attr("stroke-width", 1.5);
+                node.attr("opacity", 1);
+
+                // Restore default link styling
+                link.attr("stroke-opacity", 0.4)
+                    .attr("stroke", "#475569")
+                    .attr("stroke-width", 1);
             })
             .on("click", (_, d) => {
                 if (d.type !== "current" && d.url) {
@@ -206,11 +244,38 @@ export default function MiniMap({ graph }: MiniMapProps) {
             <div className="relative h-[200px] w-full">
                 <svg ref={svgRef} className="w-full h-full block rounded-lg select-none" />
 
-                {hoveredNode && (
-                    <div className="absolute bottom-2 left-2 right-2 px-2.5 py-1 rounded-md bg-slate-950/90 border border-slate-800 text-[11px] text-slate-300 pointer-events-none truncate shadow-md text-center">
-                        {hoveredNode.label}
-                    </div>
-                )}
+                {hoveredNode && (() => {
+                    const nodeX = hoveredNode.x ?? 140;
+                    const nodeY = hoveredNode.y ?? 100;
+                    const isNearTop = nodeY < 58;
+                    const clampedXPercent = Math.max(26, Math.min(74, (nodeX / 280) * 100));
+                    const yPercent = (nodeY / 200) * 100;
+
+                    return (
+                        <div
+                            style={{
+                                left: `${clampedXPercent}%`,
+                                top: `${yPercent}%`,
+                                transform: isNearTop
+                                    ? "translate(-50%, 18px)"
+                                    : "translate(-50%, calc(-100% - 14px))",
+                            }}
+                            className="absolute z-20 pointer-events-none max-w-[220px] px-2.5 py-1.5 rounded-lg bg-slate-950/95 border border-slate-700/80 shadow-2xl backdrop-blur-md text-center transition-all duration-150 animate-in fade-in zoom-in-95"
+                        >
+                            <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-100 leading-snug">
+                                {hoveredNode.type === "current" && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                                )}
+                                <span className="break-words">{hoveredNode.label}</span>
+                            </div>
+                            {hoveredNode.type !== "current" && hoveredNode.url && (
+                                <div className="text-[9.5px] text-emerald-400/90 mt-0.5 font-normal tracking-wide">
+                                    Click to view note →
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
             </div>
         </div>
     );
