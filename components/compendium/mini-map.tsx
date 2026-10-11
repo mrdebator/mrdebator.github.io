@@ -3,8 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { useRouter } from "next/navigation";
-import { GraphNode, GraphLink, PostGraph } from "@/lib/compendium";
-import { Maximize2, Minimize2, Network } from "lucide-react";
+import { PostGraph } from "@/lib/compendium";
 
 interface MiniMapProps {
     graph: PostGraph;
@@ -24,18 +23,16 @@ interface SimLink extends d3.SimulationLinkDatum<SimNode> {
     type: "domain" | "mention";
 }
 
-export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
+export default function MiniMap({ graph }: MiniMapProps) {
     const svgRef = useRef<SVGSVGElement | null>(null);
-    const containerRef = useRef<HTMLDivElement | null>(null);
     const router = useRouter();
-    const [isExpanded, setIsExpanded] = useState(false);
     const [hoveredNode, setHoveredNode] = useState<SimNode | null>(null);
 
     useEffect(() => {
         if (!svgRef.current || !graph || graph.nodes.length === 0) return;
 
-        const width = isExpanded ? 600 : 260;
-        const height = isExpanded ? 450 : 210;
+        const width = 280;
+        const height = 200;
 
         const svg = d3.select(svgRef.current);
         svg.selectAll("*").remove();
@@ -50,28 +47,6 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
 
         const g = svg.append("g");
 
-        // Subtle background grid
-        const defs = svg.append("defs");
-        const pattern = defs
-            .append("pattern")
-            .attr("id", "mini-grid")
-            .attr("width", 20)
-            .attr("height", 20)
-            .attr("patternUnits", "userSpaceOnUse");
-
-        pattern
-            .append("circle")
-            .attr("cx", 2)
-            .attr("cy", 2)
-            .attr("r", 0.75)
-            .attr("fill", "rgba(100, 116, 139, 0.25)");
-
-        svg.insert("rect", ":first-child")
-            .attr("width", width)
-            .attr("height", height)
-            .attr("fill", "url(#mini-grid)")
-            .attr("opacity", 0.6);
-
         // Force Simulation - runs to equilibrium and stops (no pan drift or drag collisions)
         const simulation = d3
             .forceSimulation<SimNode>(nodes)
@@ -80,24 +55,23 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
                 d3
                     .forceLink<SimNode, SimLink>(links)
                     .id((d) => d.id)
-                    .distance((d) => (d.type === "domain" ? 65 : 85))
+                    .distance(65)
             )
-            .force("charge", d3.forceManyBody().strength(-140))
+            .force("charge", d3.forceManyBody().strength(-120))
             .force("center", d3.forceCenter(width / 2, height / 2))
-            .force("collision", d3.forceCollide().radius(24));
+            .force("collision", d3.forceCollide().radius(22));
 
-        // Links: domain hubs have solid slate line; citations have emerald dashed line
+        // Links: Subtle, understated neutral slate lines
         const link = g
             .append("g")
-            .attr("stroke-opacity", 0.6)
+            .attr("stroke-opacity", 0.4)
             .selectAll("line")
             .data(links)
             .join("line")
-            .attr("stroke", (d) => (d.type === "domain" ? "#334155" : "#10b981"))
-            .attr("stroke-width", (d) => (d.type === "domain" ? 1.2 : 1.5))
-            .attr("stroke-dasharray", (d) => (d.type === "mention" ? "3,3" : "none"));
+            .attr("stroke", "#475569")
+            .attr("stroke-width", 1);
 
-        // Static View-Only Nodes (d3.drag removed per specification)
+        // Nodes: Clean, minimalist nodes without color coding or glow effects
         const node = g
             .append("g")
             .selectAll<SVGGElement, SimNode>("g")
@@ -105,33 +79,22 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
             .join("g")
             .attr("cursor", (d) => (d.type === "current" ? "default" : "pointer"));
 
-        // Node circles: Active note = emerald; Domain = blue; Mentions = slate
+        // Neutral circles: active node slightly lighter, all with subtle slate borders
         node.append("circle")
-            .attr("r", (d) => (d.type === "current" ? 12 : d.type === "domain" ? 9 : 8))
-            .attr("fill", (d) => {
-                if (d.type === "current") return "#10b981"; // Emerald
-                if (d.type === "domain") return "#3b82f6"; // Blue
-                return "#64748b"; // Slate
-            })
-            .attr("stroke", (d) => {
-                if (d.type === "current") return "rgba(16, 185, 129, 0.4)";
-                if (d.type === "domain") return "rgba(59, 130, 246, 0.3)";
-                return "rgba(100, 116, 139, 0.3)";
-            })
-            .attr("stroke-width", 4)
-            .style("transition", "transform 0.15s ease");
+            .attr("r", (d) => (d.type === "current" ? 6.5 : 5))
+            .attr("fill", (d) => (d.type === "current" ? "#cbd5e1" : "#64748b"))
+            .attr("stroke", "#1e293b")
+            .attr("stroke-width", 1.5)
+            .style("transition", "fill 0.15s ease");
 
-        // Node Labels
+        // Node Labels: Subtle neutral text
         node.append("text")
-            .text((d) => {
-                const maxLen = isExpanded ? 24 : 14;
-                return d.label.length > maxLen ? d.label.slice(0, maxLen) + "…" : d.label;
-            })
+            .text((d) => (d.label.length > 14 ? d.label.slice(0, 14) + "…" : d.label))
             .attr("x", 0)
-            .attr("y", (d) => (d.type === "current" ? 22 : 18))
+            .attr("y", 15)
             .attr("text-anchor", "middle")
             .attr("fill", (d) => (d.type === "current" ? "#f1f5f9" : "#94a3b8"))
-            .attr("font-size", isExpanded ? "10px" : "9px")
+            .attr("font-size", "9px")
             .attr("font-family", "system-ui, -apple-system, sans-serif")
             .attr("pointer-events", "none");
 
@@ -166,54 +129,20 @@ export default function MiniMap({ graph, currentTitle }: MiniMapProps) {
         return () => {
             simulation.stop();
         };
-    }, [graph, isExpanded, router]);
+    }, [graph, router]);
+
+    if (!graph || graph.nodes.length === 0) return null;
 
     return (
-        <div
-            ref={containerRef}
-            className={`rounded-xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-sm p-3 transition-all ${
-                isExpanded ? "fixed inset-8 z-50 flex flex-col bg-slate-950/95 shadow-2xl" : "relative"
-            }`}
-        >
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800/70">
-                <div className="flex items-center gap-1.5 text-xs font-medium text-slate-300">
-                    <Network className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Concept Mini-Map</span>
-                </div>
-                <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors"
-                    title={isExpanded ? "Collapse" : "Expand"}
-                    aria-label={isExpanded ? "Collapse mini-map" : "Expand mini-map"}
-                >
-                    {isExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                </button>
-            </div>
-
-            <div className={`relative ${isExpanded ? "flex-1 w-full" : "h-[190px] w-full"}`}>
+        <div className="rounded-xl border border-slate-800/80 bg-slate-900/40 backdrop-blur-sm p-3">
+            <div className="relative h-[200px] w-full">
                 <svg ref={svgRef} className="w-full h-full block rounded-lg select-none" />
 
                 {hoveredNode && (
-                    <div className="absolute bottom-2 left-2 right-2 px-2.5 py-1.5 rounded-md bg-slate-950/90 border border-slate-700 text-[11px] text-slate-200 pointer-events-none truncate shadow-lg">
-                        <span className="font-semibold text-emerald-400">
-                            {hoveredNode.type === "current"
-                                ? "Current Note: "
-                                : hoveredNode.type === "domain"
-                                  ? "Domain: "
-                                  : "Linked Note: "}
-                        </span>
+                    <div className="absolute bottom-2 left-2 right-2 px-2.5 py-1 rounded-md bg-slate-950/90 border border-slate-800 text-[11px] text-slate-300 pointer-events-none truncate shadow-md text-center">
                         {hoveredNode.label}
                     </div>
                 )}
-            </div>
-
-            <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-800/50 text-[10px] text-slate-500 font-mono">
-                <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Active
-                    <span className="w-2 h-2 rounded-full bg-slate-500 inline-block ml-1" /> Mention
-                    <span className="w-2 h-2 rounded-full bg-blue-500 inline-block ml-1" /> Domain
-                </span>
-                <span>Click note to view</span>
             </div>
         </div>
     );
