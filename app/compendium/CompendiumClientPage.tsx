@@ -120,7 +120,16 @@ export default function CompendiumClientPage({
                     }`}
                 >
                     <Layers className="w-3.5 h-3.5" />
-                    <span>All Domains ({initialPosts.length})</span>
+                    <span>All Domains</span>
+                    <span
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            selectedDomain === null
+                                ? "bg-slate-600 text-slate-200"
+                                : "bg-slate-800/80 text-slate-400"
+                        }`}
+                    >
+                        {initialPosts.length}
+                    </span>
                 </button>
 
                 {domainsWithCounts.map(({ domain, count }) => {
