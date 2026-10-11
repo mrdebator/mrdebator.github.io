@@ -22,7 +22,7 @@ export default function MobileTableOfContents({ toc }: MobileTocProps) {
                 aria-expanded={isOpen}
             >
                 <div className="flex items-center gap-2">
-                    <List className="w-4 h-4 text-emerald-400" />
+                    <List className="w-4 h-4 text-slate-400" />
                     <span>On This Page ({toc.length})</span>
                 </div>
                 <ChevronDown
@@ -42,7 +42,7 @@ export default function MobileTableOfContents({ toc }: MobileTocProps) {
                             >
                                 <a
                                     href={`#${item.id}`}
-                                    className="block py-0.5 text-slate-400 hover:text-emerald-400 transition-colors"
+                                    className="block py-0.5 text-slate-400 hover:text-white transition-colors"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         setIsOpen(false);

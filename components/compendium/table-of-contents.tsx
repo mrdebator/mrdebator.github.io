@@ -59,8 +59,8 @@ export default function TableOfContents({ toc }: TableOfContentsProps) {
                                 href={`#${item.id}`}
                                 className={`block py-0.5 transition-colors line-clamp-1 ${
                                     isActive
-                                        ? "text-emerald-400 font-medium"
-                                        : "text-slate-400 hover:text-slate-200"
+                                        ? "text-white font-medium"
+                                        : "text-slate-400 hover:text-white"
                                 }`}
                                 onClick={(e) => {
                                     e.preventDefault();
