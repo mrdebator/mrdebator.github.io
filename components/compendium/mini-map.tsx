@@ -131,8 +131,7 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .data(links)
             .join("line")
             .attr("stroke", "#475569")
-            .attr("stroke-width", 1)
-            .style("transition", "stroke 0.2s ease, stroke-opacity 0.2s ease, stroke-width 0.2s ease");
+            .attr("stroke-width", 1);
 
         // Nodes: Clean, minimalist nodes without color coding or glow effects
         const node = g
@@ -140,8 +139,7 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .selectAll<SVGGElement, SimNode>("g")
             .data(nodes)
             .join("g")
-            .attr("cursor", (d) => (d.type === "current" ? "default" : "pointer"))
-            .style("transition", "opacity 0.2s ease");
+            .attr("cursor", (d) => (d.type === "current" ? "default" : "pointer"));
 
         // Dynamic node radius & typography based on sparsity
         const currentRadius = nodeCount <= 2 ? 7.5 : nodeCount <= 4 ? 7 : 6.5;
@@ -154,7 +152,7 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .attr("fill", (d) => (d.type === "current" ? "#cbd5e1" : "#64748b"))
             .attr("stroke", "#1e293b")
             .attr("stroke-width", 1.5)
-            .style("transition", "stroke 0.2s ease, stroke-width 0.2s ease, fill 0.2s ease");
+            .style("transition", "stroke 0.15s ease, stroke-width 0.15s ease");
 
         // Helper to format expanded multiline label on hover across natural semantic boundaries
         const wrapLabel = (label: string, maxChars = 20): string[] => {
@@ -197,36 +195,16 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .attr("stroke-width", "2.5px")
             .attr("stroke-linejoin", "round");
 
-        // Hover & Navigation: Expands bottom title directly beneath node, highlights connected graph
+        // Hover & Navigation: Expands bottom title directly beneath node, highlights perimeter only
         node.on("mouseenter", (event, d) => {
             const targetGroup = d3.select(event.currentTarget);
             // Elevate hovered node to front so expanded text is never occluded
             targetGroup.raise();
 
-            // Highlight hovered node circle with emerald accent
+            // Highlight hovered node perimeter with emerald accent
             node.selectAll<SVGCircleElement, SimNode>("circle")
                 .attr("stroke", (n) => (n.id === d.id ? "#34d399" : "#1e293b"))
                 .attr("stroke-width", (n) => (n.id === d.id ? 2 : 1.5));
-
-            // Gently dim non-hovered nodes to draw immediate focus
-            node.attr("opacity", (n) => (n.id === d.id ? 1 : 0.35));
-
-            // Illuminate connected links with emerald accent, dim background links
-            link.attr("stroke-opacity", (l) => {
-                const sId = (l.source as SimNode).id;
-                const tId = (l.target as SimNode).id;
-                return sId === d.id || tId === d.id ? 0.9 : 0.12;
-            })
-                .attr("stroke", (l) => {
-                    const sId = (l.source as SimNode).id;
-                    const tId = (l.target as SimNode).id;
-                    return sId === d.id || tId === d.id ? "#34d399" : "#475569";
-                })
-                .attr("stroke-width", (l) => {
-                    const sId = (l.source as SimNode).id;
-                    const tId = (l.target as SimNode).id;
-                    return sId === d.id || tId === d.id ? 1.5 : 1;
-                });
 
             // Expand the bottom text to the full title beneath the circle
             const textEl = targetGroup.select<SVGTextElement>("text");
@@ -247,16 +225,10 @@ export default function MiniMap({ graph }: MiniMapProps) {
             .on("mouseleave", (event, d) => {
                 const targetGroup = d3.select(event.currentTarget);
 
-                // Restore circle borders and node opacities
+                // Restore circle perimeter
                 node.selectAll<SVGCircleElement, SimNode>("circle")
                     .attr("stroke", "#1e293b")
                     .attr("stroke-width", 1.5);
-                node.attr("opacity", 1);
-
-                // Restore default link styling
-                link.attr("stroke-opacity", 0.4)
-                    .attr("stroke", "#475569")
-                    .attr("stroke-width", 1);
 
                 // Collapse back to truncated bottom label
                 const textEl = targetGroup.select<SVGTextElement>("text");
