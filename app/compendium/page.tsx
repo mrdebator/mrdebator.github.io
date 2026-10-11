@@ -7,7 +7,7 @@ import { BookOpen } from "lucide-react";
 
 export const metadata = {
     title: "Compendium",
-    description: "A structured compendium of systems research, kernel internals, and technical architecture notes.",
+    description: "A curation of rabbit holes, intellectual omnivoring, and breaking things to see how they work.",
 };
 
 function CompendiumSkeleton() {
@@ -42,7 +42,7 @@ export default function CompendiumPage() {
                     <BookOpen className="h-12 w-12 text-primary" />
                     <SectionHeading
                         title="Compendium"
-                        subtitle="A structured technical compendium documenting operating systems internals, security research, and engineering notes organized by domain."
+                        subtitle="A curation of rabbit holes, intellectual omnivoring, and breaking things to see how they work."
                     />
                 </div>
                 <Suspense fallback={<CompendiumSkeleton />}>
