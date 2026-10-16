@@ -4,18 +4,20 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run lint:compendium && next build",
     "start": "next start",
     "lint": "next lint",
     "lint:compendium": "tsx scripts/lint-compendium.ts",
+    "test": "npm run test:pipeline && npm run test:maple && npm run test:linter",
     "test:pipeline": "tsx scripts/test-ast-pipeline.ts",
     "test:maple": "tsx scripts/test-maple-tree.ts",
+    "test:linter": "tsx scripts/test-linter.ts",
     "prepare": "husky",
     "sanitize:compendium": "tsx scripts/sanitize-vault-frontmatter.ts --all"
   },
   "lint-staged": {
     "content/compendium/*.md": [
-      "tsx scripts/sanitize-vault-frontmatter.ts"
+      "tsx scripts/lint-compendium.ts --fix"
     ]
   },
   "dependencies": {
