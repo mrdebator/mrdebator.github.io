@@ -13,7 +13,7 @@ Firstly, why does an [[Anticheat Software]] care about Secure Boot?
 
 Anticheat software requires Secure Boot because it guarantees a trusted, tamper-proof system environment _before_ the game and its anti-cheat even start. The most powerful cheats run as [[Linux Kernel]]-mode drivers or with [[Direct Memory Access (DMA)]], giving them "God Mode" access to hide from and block anti-cheat programs. Secure Boot acts as a bouncer during startup, verifying that only signed, legitimate software (like the Windows kernel and official drivers) can load. This allows Windows to enable its own kernel protections (like Memory Integrity), effectively blocking malicious cheat drivers from loading first and ensuring the anti-cheat software is running on a clean, secure foundation.
 
-Secondly, why would an emulator ask you to disable Secure Boot? 
+Secondly, why would an emulator ask you to disable Secure Boot?
 
 Apparently, [[Android]] emulators, including MuMu Player, rely heavily on [[Hardware Virtualization]] (VT-x or AMD-V) to run efficiently. Microsoft's built-in virtualization technologies like [[Hyper-V]] and [[Virtualization Based Security (VBS)]] (which often run on top of the hypervisor and are tied into [[Secure Boot]]) can conflict with or block the emulator's access to the necessary hardware features. Disabling these features in the [[Unified Extensible Firmware Interface (UEFI)]] settings and [[Windows]] settings resolves this conflict.
 
@@ -44,7 +44,7 @@ Here is the chain of events:
 3. Windows starts loading and sees that Secure Boot is enabled and virtualization is available.
 4. Because this trusted foundation is set, Windows activates VBS.
 5. **VBS** uses the CPU's **virtualization** hardware to create a tiny, isolated, and highly secure "bubble."
-6. Windows then places its most critical security processes—including parts of the kernel and [[Windows#Local Security Authority Subsystem Service (LSASS)]]—inside this bubble. This is **Memory Integrity**.
+6. Windows then places its most critical security processes - including parts of the kernel and [[Windows#Local Security Authority Subsystem Service (LSASS)]] - inside this bubble. This is **Memory Integrity**.
 
 Now, the OS kernel is protected by the hardware hypervisor. Even if malware gains admin-level control of your main Windows environment, it cannot access or tamper with the code running inside that secure bubble.
 
@@ -58,14 +58,14 @@ A CPU's virtualization hardware can typically only be managed by one "main" hype
 
 ### Conflict 2: Bypassing Kernel Protections (The Most Likely Reason)
 
-This is the core issue. Memory Integrity is specifically designed to prevent any software—malicious or legitimate—from hooking into, modifying, or reading the OS kernel.
+This is the core issue. Memory Integrity is specifically designed to prevent any software - malicious or legitimate - from hooking into, modifying, or reading the OS kernel.
 However, to achieve high performance, many emulators use special (and sometimes unsigned) drivers that need to operate at a very-low level. They might try to:
 
 - Hook directly into kernel processes for graphics or input/output.
 - Access hardware in ways that Memory Integrity deems unsafe (like for direct [[Graphical Processing Unit (GPU)]] or network card access).
 - Modify system tables or inject code to manage the guest OS ([[Android]]).
 
-**Memory Integrity sees this behavior as a threat**—it looks just like what a kernel-mode [[Rootkits]] would do—and blocks it. The emulator crashes or refuses to start.
+**Memory Integrity sees this behavior as a threat** - it looks just like what a kernel-mode [[Rootkits]] would do - and blocks it. The emulator crashes or refuses to start.
 
 **Therefore, to run the emulator, you must disable Memory Integrity.**
 
