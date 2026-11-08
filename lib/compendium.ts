@@ -582,10 +582,12 @@ function rehypeWrapCodeBlocks() {
                             "code-block-wrapper",
                             "not-prose",
                             "my-6",
-                            "rounded-lg",
+                            "rounded-xl",
                             "border",
-                            "border-slate-800",
-                            "bg-[#1e2227]",
+                            "border-slate-800/80",
+                            "bg-slate-950/70",
+                            "backdrop-blur-sm",
+                            "shadow-sm",
                             "overflow-hidden",
                         ],
                     },
@@ -600,10 +602,10 @@ function rehypeWrapCodeBlocks() {
                                     "items-center",
                                     "justify-between",
                                     "px-4",
-                                    "py-1.5",
-                                    "bg-slate-900/90",
+                                    "py-2",
+                                    "bg-slate-900/60",
                                     "border-b",
-                                    "border-slate-800",
+                                    "border-slate-800/80",
                                     "text-xs",
                                     "font-mono",
                                     "text-slate-400",
@@ -613,7 +615,15 @@ function rehypeWrapCodeBlocks() {
                                 {
                                     type: "element",
                                     tagName: "span",
-                                    properties: {},
+                                    properties: {
+                                        className: [
+                                            "font-semibold",
+                                            "text-slate-400",
+                                            "tracking-wider",
+                                            "uppercase",
+                                            "text-[11px]",
+                                        ],
+                                    },
                                     children: [{ type: "text", value: lang }],
                                 },
                                 {
@@ -625,10 +635,18 @@ function rehypeWrapCodeBlocks() {
                                             "copy-code-btn",
                                             "inline-flex",
                                             "items-center",
-                                            "gap-1",
+                                            "gap-1.5",
+                                            "px-2.5",
+                                            "py-1",
+                                            "rounded-md",
+                                            "text-xs",
                                             "text-slate-400",
                                             "hover:text-slate-200",
-                                            "transition-colors",
+                                            "hover:bg-slate-800/60",
+                                            "border",
+                                            "border-slate-800/60",
+                                            "hover:border-slate-700/80",
+                                            "transition-all",
                                             "cursor-pointer",
                                         ],
                                         "aria-label": "Copy code to clipboard",
@@ -636,8 +654,58 @@ function rehypeWrapCodeBlocks() {
                                     children: [
                                         {
                                             type: "element",
+                                            tagName: "svg",
+                                            properties: {
+                                                className: ["copy-icon", "w-3.5", "h-3.5"],
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                viewBox: "0 0 24 24",
+                                                fill: "none",
+                                                stroke: "currentColor",
+                                                strokeWidth: "2",
+                                                strokeLinecap: "round",
+                                                strokeLinejoin: "round",
+                                            },
+                                            children: [
+                                                {
+                                                    type: "element",
+                                                    tagName: "rect",
+                                                    properties: { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2" },
+                                                    children: [],
+                                                },
+                                                {
+                                                    type: "element",
+                                                    tagName: "path",
+                                                    properties: { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" },
+                                                    children: [],
+                                                },
+                                            ],
+                                        },
+                                        {
+                                            type: "element",
+                                            tagName: "svg",
+                                            properties: {
+                                                className: ["check-icon", "w-3.5", "h-3.5", "hidden", "text-emerald-400"],
+                                                xmlns: "http://www.w3.org/2000/svg",
+                                                viewBox: "0 0 24 24",
+                                                fill: "none",
+                                                stroke: "currentColor",
+                                                strokeWidth: "2",
+                                                strokeLinecap: "round",
+                                                strokeLinejoin: "round",
+                                            },
+                                            children: [
+                                                {
+                                                    type: "element",
+                                                    tagName: "path",
+                                                    properties: { d: "M20 6 9 17l-5-5" },
+                                                    children: [],
+                                                },
+                                            ],
+                                        },
+                                        {
+                                            type: "element",
                                             tagName: "span",
-                                            properties: { className: ["copy-text"] },
+                                            properties: { className: ["copy-text", "font-sans"] },
                                             children: [{ type: "text", value: "Copy" }],
                                         },
                                     ],
@@ -696,6 +764,26 @@ export function extractToc(markdown: string): TocItem[] {
 export const MAX_GRAPH_DEPTH = 2;
 
 /**
+ * Extracts all canonicalized wikilink concept slugs from a post's content.
+ */
+function getPostWikilinkTerms(post: CompendiumPostMeta): Set<string> {
+    const terms = new Set<string>();
+    const sourceText = post.rawContent || post.content;
+    if (!sourceText) return terms;
+    const regex = /\[\[([^\]|#]*)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g;
+    let match;
+    while ((match = regex.exec(sourceText)) !== null) {
+        const targetRaw = (match[1] || "").trim().toLowerCase();
+        if (!targetRaw) continue;
+        const targetSlug = slugify(targetRaw);
+        if (targetSlug) {
+            terms.add(targetSlug);
+        }
+    }
+    return terms;
+}
+
+/**
  * Extracts outbound wikilink mentions from a post's content.
  */
 function getPostMentions(post: CompendiumPostMeta, allPosts: CompendiumPostMeta[]): Set<string> {
@@ -726,7 +814,7 @@ function getPostMentions(post: CompendiumPostMeta, allPosts: CompendiumPostMeta[
 }
 
 /**
- * Assembles a local citation & backlink concept graph using BFS up to maxDepth.
+ * Assembles a local citation, backlink & shared-concept graph using BFS up to maxDepth.
  * Decouples domain hubs from BFS expansion so graph stays high-signal.
  */
 export function buildConceptGraph(
@@ -746,31 +834,47 @@ export function buildConceptGraph(
         url: `/compendium/${currentPost.slug}`,
     });
 
-    // Add domain hubs for the active note
-    for (const domain of currentPost.domains) {
-        if (!nodesMap.has(domain.id)) {
-            nodesMap.set(domain.id, {
-                id: domain.id,
-                label: domain.name,
-                type: "domain",
-                url: `/compendium?domain=${domain.slug}`,
-            });
-        }
-        const linkKey = `${currentPost.slug}->${domain.id}:domain`;
-        linksMap.set(linkKey, {
-            source: currentPost.slug,
-            target: domain.id,
-            type: "domain",
-        });
-    }
-
-    // Precompute mention adjacency list
+    // Precompute mention & shared wikilink concept adjacency list
     const forwardMentions = new Map<string, Set<string>>();
+    const postTerms = new Map<string, Set<string>>();
     for (const p of allPosts) {
         forwardMentions.set(p.slug, getPostMentions(p, allPosts));
+        postTerms.set(p.slug, getPostWikilinkTerms(p));
     }
 
-    // BFS Traversal strictly across citations & backlinks
+    // Connect posts that co-cite one or more common [[wikilink]] terms
+    for (let i = 0; i < allPosts.length; i++) {
+        const postA = allPosts[i];
+        const termsA = postTerms.get(postA.slug);
+        if (!termsA || termsA.size === 0) continue;
+
+        for (let j = i + 1; j < allPosts.length; j++) {
+            const postB = allPosts[j];
+            const termsB = postTerms.get(postB.slug);
+            if (!termsB || termsB.size === 0) continue;
+
+            const sharesTerm = Array.from(termsA).some((t) => termsB.has(t));
+            if (sharesTerm) {
+                forwardMentions.get(postA.slug)!.add(postB.slug);
+                forwardMentions.get(postB.slug)!.add(postA.slug);
+            }
+        }
+    }
+
+    // Helper to register deduplicated undirected mention links
+    const addMentionLink = (slugA: string, slugB: string) => {
+        const [first, second] = slugA < slugB ? [slugA, slugB] : [slugB, slugA];
+        const linkKey = `${first}<->${second}:mention`;
+        if (!linksMap.has(linkKey)) {
+            linksMap.set(linkKey, {
+                source: slugA,
+                target: slugB,
+                type: "mention",
+            });
+        }
+    };
+
+    // BFS Traversal strictly across citations, backlinks, and shared-term co-citations
     const visitedDepth = new Map<string, number>();
     visitedDepth.set(currentPost.slug, 0);
 
@@ -783,7 +887,7 @@ export function buildConceptGraph(
         const currentP = allPosts.find((p) => p.slug === slug);
         if (!currentP) continue;
 
-        // 1. Forward citations (slug mentions neighbor)
+        // 1. Forward citations & shared-term co-citations (slug mentions/shares term with neighbor)
         const forward = forwardMentions.get(slug) || new Set<string>();
         for (const targetSlug of Array.from(forward)) {
             const targetP = allPosts.find((p) => p.slug === targetSlug);
@@ -799,14 +903,7 @@ export function buildConceptGraph(
                 });
             }
 
-            const linkKey = `${slug}->${targetSlug}:mention`;
-            if (!linksMap.has(linkKey)) {
-                linksMap.set(linkKey, {
-                    source: slug,
-                    target: targetSlug,
-                    type: "mention",
-                });
-            }
+            addMentionLink(slug, targetSlug);
 
             const currentRecordedDepth = visitedDepth.get(targetSlug);
             if (currentRecordedDepth === undefined || depth + 1 < currentRecordedDepth) {
@@ -830,14 +927,7 @@ export function buildConceptGraph(
                     });
                 }
 
-                const linkKey = `${other.slug}->${slug}:mention`;
-                if (!linksMap.has(linkKey)) {
-                    linksMap.set(linkKey, {
-                        source: other.slug,
-                        target: slug,
-                        type: "mention",
-                    });
-                }
+                addMentionLink(other.slug, slug);
 
                 const currentRecordedDepth = visitedDepth.get(other.slug);
                 if (currentRecordedDepth === undefined || depth + 1 < currentRecordedDepth) {
@@ -896,6 +986,12 @@ export async function getPostBySlug(slug: string): Promise<CompendiumPost | null
                 {
                     pre(node) {
                         node.properties["data-lang"] = this.options.lang || "plaintext";
+                        if (node.properties.style && typeof node.properties.style === "string") {
+                            node.properties.style = node.properties.style.replace(
+                                /background-color:[^;]+;?/i,
+                                "background-color: transparent;"
+                            );
+                        }
                     },
                 },
             ],

@@ -130,9 +130,9 @@ const involvementsData = [
 ];
 
 const categories = [
-    { name: "Community Leadership & Judging", icon: Gavel },
-    { name: "Research & Speaking Engagements", icon: Mic },
-    { name: "Competitive & Academic Honors", icon: Trophy },
+    { id: "leadership", name: "Community Leadership & Judging", icon: Gavel },
+    { id: "speaking", name: "Research & Speaking Engagements", icon: Mic },
+    { id: "honors", name: "Competitive & Academic Honors", icon: Trophy },
 ];
 
 export default function InvolvementsPage() {
@@ -149,7 +149,7 @@ export default function InvolvementsPage() {
 
                 <div className="max-w-6xl mx-auto space-y-12">
                     {categories.map((category) => (
-                        <section key={category.name}>
+                        <section key={category.name} id={category.id} className="scroll-mt-28">
                             <div className="flex items-center gap-3 mb-8">
                                 <category.icon className="h-8 w-8 text-primary" />
                                 <h2 className="text-3xl font-bold">{category.name}</h2>

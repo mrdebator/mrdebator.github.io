@@ -73,4 +73,8 @@
     .callout-important .callout-title {
         @apply text-purple-400;
     }
+
+    .code-block-wrapper pre {
+        background-color: transparent !important;
+    }
 }

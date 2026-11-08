@@ -42,15 +42,28 @@ export default function CompendiumCodeCopyHandler() {
 
             if (copied) {
                 const textSpan = btn.querySelector(".copy-text");
-                if (textSpan) {
-                    const orig = textSpan.textContent;
-                    textSpan.textContent = "Copied!";
-                    btn.classList.add("text-emerald-400");
-                    setTimeout(() => {
-                        textSpan.textContent = orig;
-                        btn.classList.remove("text-emerald-400");
-                    }, 2000);
+                const copyIcon = btn.querySelector(".copy-icon");
+                const checkIcon = btn.querySelector(".check-icon");
+
+                if (copyIcon && checkIcon) {
+                    copyIcon.classList.add("hidden");
+                    checkIcon.classList.remove("hidden");
                 }
+                if (textSpan) {
+                    textSpan.textContent = "Copied!";
+                }
+                btn.classList.add("text-emerald-400", "border-emerald-500/40", "bg-emerald-500/10");
+
+                setTimeout(() => {
+                    if (copyIcon && checkIcon) {
+                        copyIcon.classList.remove("hidden");
+                        checkIcon.classList.add("hidden");
+                    }
+                    if (textSpan) {
+                        textSpan.textContent = "Copy";
+                    }
+                    btn.classList.remove("text-emerald-400", "border-emerald-500/40", "bg-emerald-500/10");
+                }, 2000);
             }
         };
 

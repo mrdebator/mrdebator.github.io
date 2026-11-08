@@ -12,6 +12,7 @@ export const metadata = {
 };
 
 interface ProjectItem {
+    id: string;
     name: string;
     tagline: string;
     problem: string;
@@ -28,6 +29,7 @@ interface ProjectItem {
 
 const projectsData: ProjectItem[] = [
     {
+        id: "maple-tree-visualizer",
         name: "Linux Maple Tree Visualizer",
         tagline: "An interactive systems visualizer for the Linux 6.1+ kernel Maple Tree data structure and virtual memory subsystem.",
         problem: "Linux 6.1 replaced the traditional red-black tree with the Maple Tree for managing virtual memory areas (VMAs). While it improves lockless read performance, understanding how range-based B-trees balance, split, and update in memory can be challenging without a visual way to step through each operation.",
@@ -45,6 +47,7 @@ const projectsData: ProjectItem[] = [
         visual: "/projects/maple-tree.svg",
     },
     {
+        id: "claros",
         name: "Claros",
         tagline: "A query-driven knowledge graph and OSINT automation engine.",
         problem: "Open Source Intelligence (OSINT) is a time-consuming, manual process of following a trail of digital breadcrumbs. This tool automates the discovery and, more importantly, the connection of disparate security information.",
@@ -62,6 +65,7 @@ const projectsData: ProjectItem[] = [
         visual: "/projects/claros.png",
     },
     {
+        id: "sysmonitor-ebpf",
         name: "sysmonitor-ebpf",
         tagline: "A high-performance, kernel-level data collection utility for cloud-native environments.",
         problem: "Traditional 'sidecar' monitoring in container deployments can be cumbersome and resource-intensive. We needed a more efficient way to gain deep visibility for threat detection.",
@@ -79,6 +83,7 @@ const projectsData: ProjectItem[] = [
         visual: "/projects/sysmonitor.png",
     },
     {
+        id: "cybersecurity-training-lab",
         name: "Cybersecurity Training Lab",
         tagline: "A custom, sandboxed lab environment for hands-on cybersecurity education.",
         problem: "Drexel's cybersecurity club, with over 500 members, lacked the dedicated infrastructure to safely practice offensive and defensive security techniques without risk to the university network.",
@@ -110,7 +115,7 @@ export default function ProjectsPage() {
 
                 <div className="max-w-5xl mx-auto space-y-16">
                     {projectsData.map((project) => (
-                        <div key={project.name} className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start">
+                        <div key={project.name} id={project.id} className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12 items-start scroll-mt-36">
                             {/* Left Column: Visual & Links */}
                             <div className="lg:col-span-1">
                                 <div className={`relative aspect-video rounded-lg overflow-hidden border border-border shadow-lg mb-4 ${project.visual.endsWith('.svg') ? 'bg-slate-950' : 'bg-white'}`}>
